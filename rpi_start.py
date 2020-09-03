@@ -25,11 +25,13 @@ hi_word = (ip_to_int(ip_addr) >> 16) & 0xffff
 print(lo_word)
 print(hi_word)
 print(f"Low Byte -> {low_byte}")
+print(f"Low Byte -> {lo_word}")
+print(f"Low Byte -> {hi_word}")
 
 spi = fpga_spi()
 
-spi.write_register(67, lo_word)
-spi.write_register(68, hi_word)
+print(spi.write_register(67, lo_word))
+print(spi.write_register(68, hi_word))
 print(f"Register 67 = {spi.read_register(67)}")
 print(f"Register 68 = {spi.read_register(68)}")
 

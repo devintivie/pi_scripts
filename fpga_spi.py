@@ -17,7 +17,7 @@ class fpga_spi:
     def open(self, bus=0, slave=0):
         self._spi.open(bus, slave)
         self.set_clk_freq(self.clk_freq)
-        #sleep(2)
+        sleep(2)
 
     def close(self):
         self._spi.close()
@@ -36,9 +36,12 @@ class fpga_spi:
         data_list = list([x for x in struct.pack('>H', data)])
         register_list[0] = register_list[0] & 0x7f
 
+        print(f"register list ->{register_list}")
+        print(f"data list -> {data_list}")
         for i in range(len(data_list)):
             register_list.append(data_list[i])
 
+        print(f"register list after append -> {register_list}")
         return_data = self._spi.xfer(register_list)
 
         int_data = return_data[3] + (return_data[2] << 8)
@@ -48,10 +51,12 @@ class fpga_spi:
     def read_register(self, raw_addr):
         address = raw_addr & 0xffff
         register_list = list([x for x in struct.pack('>H', address)])
-        register_list[0] = register_list[0] & 0x7f
+        register_list[0] = (register_list[0] & 0x7f) + 0x80
         register_list.append(0)
         register_list.append(0)
-        return_data = self._spi.xfer(register_list)
+        print(f"register list after append -> {register_list}")
+        return_data = self._spi.xfer2(register_list)
+        print(f"return data -> {return_data}")
         int_data = return_data[3] + (return_data[2] << 8)
         return int_data
 
@@ -60,8 +65,8 @@ if __name__ == "__main__":
     spi = fpga_spi()
     sleep(1)
     print('hello')
-    print(spi.write_register(1000, 10))
-    print(spi.write_register(100, 10))
-    print(spi.read_register(1000))
-    print(spi.read_register(100))
+    print(spi.write_register(1, 8))
+    print(spi.write_register(4, 10))
+    print(spi.read_register(1))
+    print(spi.read_register(4))
     spi.close()

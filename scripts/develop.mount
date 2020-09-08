@@ -1,0 +1,5 @@
+[Mount]
+What=//169.254.208.1/pi_scripts
+Where=/develop
+Options=_netdev,x-systemd.after=network-online.target,cache=none,password= ,rw
+Type=cifs

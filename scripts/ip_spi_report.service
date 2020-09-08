@@ -1,0 +1,10 @@
+[Unit]
+Description=Report IP Address to FPGA once booted
+After=network.target develop.mount
+
+[Service]
+Type=oneshot
+ExecStart=python3 /develop/rpi_start.py
+
+[Install]
+WantedBy=multi-user.target

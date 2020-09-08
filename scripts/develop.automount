@@ -1,0 +1,12 @@
+[Unit]
+DefaultDependencies=no
+Requires=remote-fs-pre.target
+After=remote-fs-pre.target
+Conflicts=umount.target
+Before=umount.target
+
+[Automount]
+Where=/develop
+
+[Install]
+WantedBy=remote-fs.target

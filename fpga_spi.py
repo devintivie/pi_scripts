@@ -1,7 +1,31 @@
 import spidev
 from time import sleep
 import struct
+'''
+Controls FPGA Register writing and reading.
+SPI interface follows 1 bit Read/Write 15 bit address and 16 bit data.
+4 Bytes are transmitted on both a write command and a read command.
 
+Write
+MOSI
+-------------------------------------------------------
+|| R/_W | A14 - A8 || A7 - A0 || D15 - D8 || D7 - D0 || 
+-------------------------------------------------------
+MISO
+-------------------------------------------------------
+|| 0xXX || 0xXX || 0xXX || 0xXX  || 
+-------------------------------------------------------
+
+Read
+MOSI
+-------------------------------------------------------
+||  | A14 - A8 || A7 - A0 || 0xXX || 0xXX || 
+-------------------------------------------------------
+MISO
+-------------------------------------------------------
+|| 0x00 || 0x00 || D15 - D8 || D7 - D0 || 
+-------------------------------------------------------
+'''
 class fpga_spi:
     clk_freq = int(4.0e6)
     

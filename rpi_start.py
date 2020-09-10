@@ -1,6 +1,13 @@
 from boonton_control_spi import *
 import fcntl
 
+'''
+This code is used to set the ip address registers within the ARTY.
+The SPI interface is used and the Pi is the master.
+The boonton_control_spi module is used as the API to handle the interaction
+and keep track of the current registers. This code should be kept simple to 
+help with debugging in case there is a problem.
+'''
 def get_if_ip(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ip_address = socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', bytes(ifname[:15], 'utf-8')))[20:24])

@@ -36,22 +36,24 @@ class fpga_spi:
         data_list = list([x for x in struct.pack('>H', data)])
         register_list[0] = register_list[0] & 0x7f
 
-        print(f"register list ->{register_list}")
-        print(f"data list -> {data_list}")
+        # print(f"register list ->{register_list}")
+        # print(f"data list -> {data_list}")
         for i in range(len(data_list)):
             register_list.append(data_list[i])
 
-        print(f"register list after append -> {register_list}")
+        # print(f"register list after append -> {register_list}")
         return_data = self._spi.xfer(register_list)
 
-        int_data = return_data[3] + (return_data[2] << 8)
-        return int_data
+        # int_data = return_data[3] + (return_data[2] << 8)
+        # return int_data
 
 
     def read_register(self, raw_addr):
         address = raw_addr & 0xffff
+        # address = 0x100
         register_list = list([x for x in struct.pack('>H', address)])
         register_list[0] = (register_list[0] & 0x7f) + 0x80
+        # register_list[1] = 0
         register_list.append(0)
         register_list.append(0)
         print(f"register list after append -> {register_list}")

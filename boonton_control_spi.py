@@ -1,6 +1,7 @@
 from fpga_spi import *
 import socket
 
+#Sensor Register designations
 SENSOR_REG_JUMP = 0x8
 SENSOR_BASE = 0x0
 SENSOR_COUNT =  4
@@ -13,12 +14,18 @@ SENSOR_TIME_LO = 0x5
 SENSOR_TIME_HI = 0x6
 PULSE_SELECT = 0x7
 
+#Raspberry Pi Control Registers. Register map is taken from 
+#FPGA code
 PI_BASE = 0x40
 ERROR_REG = 0
 TRIGGER_ARM_REG = 2
 LO_IP_REG = 3
 HI_IP_REG = 4
-
+'''
+API wrapper for writing and reading registers with FPGA
+fpga_spi module is the base for this class and controls the lower level 
+SPI processes. 
+'''
 class boonton_control_spi(fpga_spi):
     def __init__(self):
         super().__init__()

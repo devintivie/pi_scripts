@@ -2,7 +2,11 @@ import pika
 import json
 
 credentials = pika.PlainCredentials('devin', 'Ikorgil19')
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='192.168.68.109', port=5672, virtual_host='/', credentials=credentials))
+connection = pika.BlockingConnection(pika.ConnectionParameters(
+    host='192.168.68.109', 
+    port=5672, 
+    virtual_host='/', 
+    credentials=credentials))
 channel = connection.channel()
 
 exchange_name = "topic_logs"

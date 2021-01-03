@@ -2,22 +2,24 @@ import pika
 import json
 from payload import payload
 
-# from rpc_classes import *
-from payload import *
-
 credentials = pika.PlainCredentials('devin', 'Ikorgil19')
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='192.168.68.109', port=5672, virtual_host='/', credentials=credentials))
+
 channel = connection.channel()
 
-queue_name = 'rpc_queue'
-channel.queue_declare(queue=queue_name)
-# def fib(n):
-#     if n == 0:
-#         return 0
-#     elif n == 1:
-#         return 1
-#     else:
-#         return fib(n - 1) + fib(n - 2)
+exchange_name = "rtsh_topics"
+channel.exchange_declare(exchange=exchange_name, exchange_type='topic')
+
+result = channel.queue_declare('', exclusive=True)
+queue_name = result.method.queue
+routing_key = "rasp.control.pi2"
+channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key)
+
+
+routing_key_all = "rasp.control.*"
+channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key_all)
+
+
 def response_heartbeat(payload):
 
     status = "ok"
@@ -37,8 +39,6 @@ commands = callable_dict({
     # "identity" : response_identity
 })
 
-
-
 def process_rpc_command(data):
     command = data.command
     payload = data.payload
@@ -54,22 +54,21 @@ def process_rpc_command(data):
     
     return response_json
 
+def callback(ch, method, props, body):
+    print(f" [x] {method.routing_key}:{body}")
 
-def on_request(ch, method, props, body):
+    # jo = payload(body)
+    # print(f"[x] Received message command = {jo.command}")
+    # print(f"[x] Received message payload = {jo.payload}")
     data = payload(body)
     response = process_rpc_command(data)
 
-    # n = int(body)
-
-    # print(f"[.] fib({n}, {props.reply_to}")
-    # response = fib(n)
-    ch.basic_publish(exchange='', routing_key=props.reply_to, properties=pika.BasicProperties(correlation_id=props.correlation_id), body=str(response))
+    ch.basic_publish(exchange='', routing_key='rasp.control.master', properties=pika.BasicProperties(correlation_id=props.correlation_id), body=str(response))
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
-channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue=queue_name, on_message_callback=on_request)
+channel.basic_consume(queue=queue_name, on_message_callback=callback)
 
-
+print('consuming....')
 channel.start_consuming()
 # connection.close()

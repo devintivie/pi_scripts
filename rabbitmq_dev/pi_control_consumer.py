@@ -2,6 +2,9 @@ import pika
 import json
 import sys
 from payload import payload
+import socket
+import fcntl
+import struct
 
 from pi_response_base import *
 
@@ -29,9 +32,26 @@ channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing
 routing_key_all = "rasp.control.all"
 channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key_all)
 
+def getMAC(interface='eth0'):
+    try:
+        name = open(f'/sys/class/net/{interface}/address').read()
+    except:
+        name = "00:00:00:00:00:00"
+    return name[:17]
+
+def get_if_ip(interface='eth0'):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    ip_address = socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', bytes(interface[:15], 'utf-8')))[20:24])
+    s = None
+    return ip_address
 
 def response_heartbeat(payload):
-    response = pi_response_base(name=name, mac="00-00-00-00-00-01", ip="192.168.68.143")
+    # try:
+    mac = getMAC('wlan0')
+    ip = get_if_ip('wlan0')
+    # except :
+    #     return "Bloody Error In'it?" 
+    response = pi_response_base(name=name, mac=mac, ip=ip)
     response.status = "ok"
     # status = "ok"
     # response_dict = {
@@ -81,6 +101,9 @@ def callback(ch, method, props, body):
     
     ch.basic_publish(exchange=exchange_name, routing_key='master.control.response', properties=pika.BasicProperties(correlation_id=props.correlation_id), body=str(response))
     ch.basic_ack(delivery_tag=method.delivery_tag)
+
+
+
 
 
 channel.basic_consume(queue=queue_name, on_message_callback=callback)

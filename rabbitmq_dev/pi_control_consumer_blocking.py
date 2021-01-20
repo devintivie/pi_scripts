@@ -1,64 +1,40 @@
 import pika
 import json
 import sys
-from payload import *
-from configuration_manager import *
-from pi_response_base import *
+from payload import payload
 import socket
-import os
+
 # import fcntl
 import struct
 
-
-
 # from pi_response_base import *
+
+# name = sys.argv[1]
 if len(sys.argv) > 1:
-    config_file = sys.argv[1]
+    name = sys.argv[1]
 else:
-    config_file = 'pc_rabbitmq.json'
-
-try:
-    with open(f'{config_file}') as f:
-        config = json.load(f)['config']
-except FileNotFoundError as error:
-    curr_dir = os.path.dirname(__file__)
-    with open(f'{curr_dir}/{config_file}') as f:
-        config = json.load(f)['config']
-# finally:
-#     pass
-
-
-#     import os
-# curr_dir = os.path.dirname(__file__)
-# with open(f'{curr_dir}/{config_file}') as f:
-#     config = json.load(f)['config']
-
-file_credentials = config['credentials']
-file_parameters = config['rabbit_parameters']
-credentials = pika.PlainCredentials(file_credentials['user'], file_credentials['password'])
+    name = 'pc'
+credentials = pika.PlainCredentials('devin', 'Ikorgil19')
 connection = pika.BlockingConnection(pika.ConnectionParameters(
-    host=file_parameters['host'], 
-    port=file_parameters['port'], 
-    virtual_host=file_parameters['vhost'], 
+    host='192.168.68.109', 
+    port=5672, 
+    virtual_host='/', 
     credentials=credentials,
-    heartbeat=file_parameters['heartbeat']))
+    heartbeat=0))
 
 channel = connection.channel()
 
-exchange_name = config['exchange']#"rtsh_topics"
+exchange_name = "rtsh_topics"
 channel.exchange_declare(exchange=exchange_name, exchange_type='topic')
 
 result = channel.queue_declare('', exclusive=True)
 queue_name = result.method.queue
-
-for key in config['routing_keys']:
-    channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=key)
-# routing_key = f"rasp.control.{name}"
-# channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key)
+routing_key = f"rasp.control.{name}"
+channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key)
 
 
-# routing_key_all = "rasp.control.all"
-# channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key_all)
+routing_key_all = "rasp.control.all"
+channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=routing_key_all)
 
 def getMAC(interface='eth0'):
     try:
@@ -121,11 +97,11 @@ def callback(ch, method, props, body):
     # jo = payload(body)
     # print(f"[x] Received message command = {jo.command}")
     # print(f"[x] Received message payload = {jo.payload}")
-    # data = payload(body)
-    # response = process_rpc_command(data)
+    data = payload(body)
+    response = process_rpc_command(data)
 
-    # print(f' [y] responded with {response}')
-    response = 'hello'
+    print(f' [y] responded with {response}')
+
     
     ch.basic_publish(exchange=exchange_name, routing_key='master.control.response', properties=pika.BasicProperties(correlation_id=props.correlation_id), body=str(response))
     ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -135,8 +111,7 @@ def callback(ch, method, props, body):
 
 
 channel.basic_consume(queue=queue_name, on_message_callback=callback)
-name = config['name']
 print(f'{name} consuming')
 channel.start_consuming()
-print(f'post consuming')
+
 # connection.close()

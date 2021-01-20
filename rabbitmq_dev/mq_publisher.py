@@ -3,16 +3,19 @@ import sys
 import functools
 import queue
 import time
+import threading
 
-class mq_publisher(object):
-    def __init__(self, name, parameters):
+class mq_publisher(threading.Thread):
+    def __init__(self, parameters):
+        threading.Thread.__init__(self)
         self.connection_parameters = parameters
-        self.name = name
+        # self.name = name
         self.exchange_name = "rtsh_topics"
         self.routing_key='master.control.response'
         self.messages = queue.Queue()
         self._stopping = False
-        self.QUEUE = ''
+        self.queue_name = ''
+        self._connection = None
 
     def connect(self):
         conn = pika.SelectConnection(
@@ -48,26 +51,29 @@ class mq_publisher(object):
     def on_channel_closed(self, channel, reason):
         self._channel = None
         if not self._stopping:
-            self._connection.close()
+            self.close_channel()
 
     def setup_exchange(self):
         cb = functools.partial(
             self.on_exchange_declareok, userdata=self.exchange_name)
-        self._channel.exchange_declare(exchange=self.exchange_name, exchange_type='topic', callback = cb)
+        self._channel.exchange_declare(
+            exchange=self.exchange_name, 
+            exchange_type='topic', 
+            callback = cb)
         
 
     def on_exchange_declareok(self, _unused_frame, userdata):
         # self.setup_queue()
         self.start_publishing()
     
-    def setup_queue(self):
-        try:
-            self._channel.queue_declare('', auto_delete = True, callback=self.on_queue_declareok)#, exclusive=True)
-        finally:
-            print('wtf')
+    # def setup_queue(self):
+    #     try:
+    #         self._channel.queue_declare('', auto_delete = True, callback=self.on_queue_declareok)#, exclusive=True)
+    #     finally:
+    #         print('wtf')
 
-    def on_queue_declareok(self, frame):
-        self._channel.queue_bind(exchange=self.exchange_name, queue=self.QUEUE, routing_key=self.routing_key, callback=self.on_bindok)
+    # def on_queue_declareok(self, frame):
+    #     self._channel.queue_bind(exchange=self.exchange_name, queue=self.QUEUE, routing_key=self.routing_key, callback=self.on_bindok)
    
     def on_bindok(self, frame):
         self.start_publishing()
@@ -78,7 +84,7 @@ class mq_publisher(object):
     def schedule_next_message(self):
         try:
             msg = self.messages.get(True, 0.01)
-            self._channel.basic_publish(exchange=self.exchange_name, routing_key='master.control.response', body=str(msg))
+            self._channel.basic_publish(exchange=self.exchange_name, routing_key=self.routing_key, body=str(msg))
         except queue.Empty:
             pass
         except pika.exceptions.ChannelWrongStateError as ex:
@@ -87,9 +93,9 @@ class mq_publisher(object):
         finally:
             pass 
 
-        self.messages.put("hello")
+        # self.messages.put("hello")
         if not self._stopping :
-            self._connection.ioloop.call_later(0.000, self.schedule_next_message)
+            self._connection.ioloop.call_later(0.0, self.schedule_next_message)
 
         
         # time.sleep(0.001)
@@ -137,14 +143,17 @@ if __name__ == "__main__":
         name = 'pc'
     credentials = pika.PlainCredentials('devin', 'Ikorgil19')
     parameters = pika.ConnectionParameters(
-        host='192.168.68.109', 
+        host='169.254.208.1', #'192.168.68.109', 
         port=5672, 
         virtual_host='/', 
         credentials=credentials,
         heartbeat=0)
 
-    pub = mq_publisher(name, parameters)
+    pub = mq_publisher(parameters)
+    print('publisher start run()')
     pub.run()
+
+    print('publisher post run()')
 
 
 

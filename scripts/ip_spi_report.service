@@ -1,10 +1,12 @@
 [Unit]
 Description=Report IP Address to FPGA once booted
-After=network.target develop.mount
+After=network.target develop.mount raspi-config.service
 
 [Service]
-Type=oneshot
+Type=idle
 ExecStart=python3 /develop/rpi_start.py
+RestartSec=5
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

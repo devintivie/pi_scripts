@@ -1,0 +1,20 @@
+{
+    "config":{
+        "name" : "pi1",
+        "credentials":{
+            "user" : "devin",
+            "password" : "Ikorgil19"
+        },
+        "rabbit_parameters":{
+            "host" : "192.168.68.109",
+            "port" : "5672",
+            "vhost" : "/",
+            "heartbeat" : 0
+        },
+        "exchange" : "rtsh_topics",
+        "routing_keys" :[
+            "rasp.control.pi1",
+            "rasp.control.all"
+        ]
+    }
+}

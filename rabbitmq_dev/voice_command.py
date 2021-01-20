@@ -9,9 +9,9 @@ connection = pika.BlockingConnection(pika.ConnectionParameters(
     credentials=credentials))
 channel = connection.channel()
 
-exchange_name = "topic_logs"
+exchange_name = "rtsh_topics"
 channel.exchange_declare(exchange=exchange_name, exchange_type='topic')
-routing_key = "voice.command"
+routing_key = "master.control.*"
 
 o = {
     "command": "turn on",

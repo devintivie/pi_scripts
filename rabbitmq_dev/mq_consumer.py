@@ -2,8 +2,13 @@ import functools
 import time
 import pika
 import sys
+import json
 
 import threading
+# from pi_response_base import *
+from payload import payload
+from pi_command_processor import pi_command_processor
+# from pi_control_commands import *
 
 class mq_consumer(threading.Thread):
 
@@ -16,6 +21,7 @@ class mq_consumer(threading.Thread):
         self._stopping = False
         self.queue_name = ''
         self.publisher = publisher
+        self.command_processor = pi_command_processor()
 
         self.should_reconnect = False
         self.was_consuming = False
@@ -125,8 +131,29 @@ class mq_consumer(threading.Thread):
         :param pika.Spec.BasicProperties: properties
         :param bytes body: The message body
         """
-        self.publisher.messages.put("hello")
+
+        data = payload(body)
+        response = self.process_rpc_command(data)
+        self.publisher.messages.put(response)
         self.acknowledge_message(basic_deliver.delivery_tag)
+
+    def process_rpc_command(self, data):
+        command = data.command
+        # payload = data.payload
+
+        response = self.command_processor.process(data)#    commands[command](payload)
+
+        o = {
+            "header" : {
+                "command" : f"{command}_response",
+                "hostname" : self.name,
+            },
+            "payload" : response 
+        }
+
+        response_json = json.dumps(o, indent=2)
+        
+        return response_json
 
     def acknowledge_message(self, delivery_tag):
         self._channel.basic_ack(delivery_tag)
@@ -184,6 +211,8 @@ class mq_consumer(threading.Thread):
                 self._connection.ioloop.stop()
 
 
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         name = sys.argv[1]
@@ -209,3 +238,5 @@ if __name__ == "__main__":
             # pub.stop()
 
     print('consumer post run()')
+
+

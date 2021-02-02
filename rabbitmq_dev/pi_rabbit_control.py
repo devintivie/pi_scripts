@@ -7,7 +7,7 @@ import time
 if len(sys.argv) > 1:
     config_file = sys.argv[1]
 else:
-    config_file = 'pc_rabbitmq.json'
+    config_file = 'pi1_rabbitmq.json'
 
 try:
     with open(f'{config_file}') as f:
@@ -35,6 +35,10 @@ pub.start()
 print('consumer start run()')
 con.start()
 print('publisher post run()')
+print()
+print('listening for routing keys as')
+for fr in file_routing:
+    print(fr)
 
 while True:
     try:

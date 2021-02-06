@@ -1,0 +1,12 @@
+[Unit]
+Description=Start rabbit control script
+After=network.target develop.mount raspi-config.service
+
+[Service]
+Type=idle
+ExecStart=python3 /develop/rabbitmq_dev/pi_rabbit_control.py pi1_rabbitmq.json
+RestartSec=5
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -15,6 +15,7 @@ class mq_publisher(threading.Thread):
         self.messages = queue.Queue()
         self._stopping = False
         self.queue_name = ''
+        self._channel = None
         self._connection = None
 
     def connect(self):
@@ -32,7 +33,8 @@ class mq_publisher(threading.Thread):
     def on_connection_open(self, _unused_connection):
         self._connection.channel(on_open_callback=self.on_channel_open)
 
-    def on_connection_open_error(self):
+    def on_connection_open_error(self, _unused_connection, err):
+
         self.stop()
 
     def on_connection_closed(self, connection, reason):
@@ -137,6 +139,8 @@ class mq_publisher(threading.Thread):
 
 
 if __name__ == "__main__":
+
+    time.sleep(30)
     if len(sys.argv) > 1:
         name = sys.argv[1]
     else:

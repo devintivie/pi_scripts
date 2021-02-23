@@ -6,10 +6,12 @@
             "password" : "Ikorgil19"
         },
         "rabbit_parameters":{
-            "host" : "192.168.68.109",
-            "port" : "5672",
+            "host" : "169.254.208.1",
+            "port" : 5672,
             "vhost" : "/",
-            "heartbeat" : 0
+            "heartbeat" : 120,
+            "publisher_name" : "pi1_control_publisher",
+            "consumer_name" : "pi1_control_consumer"
         },
         "exchange" : "rtsh_topics",
         "routing_keys" :[

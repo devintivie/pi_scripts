@@ -7,6 +7,7 @@ import json
 import threading
 # from pi_response_base import *
 from payload import payload
+# from pc_command_processor import pc_command_processor
 from pi_command_processor import pi_command_processor
 # from pi_control_commands import *
 
@@ -31,35 +32,43 @@ class mq_consumer(threading.Thread):
         self._closing = False
         self._consumer_tag = None
         # self._url = amqp_url
-        self._consuming = False
+        self._is_consuming = False
         # In production, experiment with higher prefetch values
         # for higher consumer throughput
         self._prefetch_count = 1
+        
 
     def connect(self):
-        conn = pika.SelectConnection(
-            parameters=self.connection_parameters,
-            on_open_callback=self.on_connection_open,
-            on_open_error_callback=self.on_connection_open_error,
-            on_close_callback=self.on_connection_closed)
+        try:
+            # print('connect start')
+            conn = pika.SelectConnection(
+                parameters=self.connection_parameters,
+                on_open_callback=self.on_connection_open,
+                on_open_error_callback=self.on_connection_open_error,
+                on_close_callback=self.on_connection_closed)
 
-        self._connection = conn
+            self._connection = conn
+        except Exception:
+            print('connect exception')
     
     def on_connection_open(self, _unused_connection):
+        # print(f'on connection open')
         self._connection.channel(on_open_callback=self.on_channel_open)
 
     def on_connection_open_error(self, _unused_connection, err):
+        print(f'on connection error = {err}')
         self.reconnect()
 
     def on_connection_closed(self, _unused_connection, reason):
         self._channel = None
-        print(reason)
+        print(f' connection_closed_reason = {reason}')
         if self._closing:
             self._connection.ioloop.stop()
         else:
             self.reconnect()
 
     def on_channel_open(self, channel):
+        # print('on channel open')
         self._channel = channel
         self.add_on_channel_close_callback()
         self.setup_exchange()
@@ -68,6 +77,7 @@ class mq_consumer(threading.Thread):
         self._channel.add_on_close_callback(self.on_channel_closed)
 
     def on_channel_closed(self, channel, reason):
+        print(f'channel closed, reason = {reason}')
         self.close_connection()
 
     def setup_exchange(self):#, exchange_name):
@@ -110,7 +120,7 @@ class mq_consumer(threading.Thread):
         self._consumer_tag = self._channel.basic_consume(
             self.queue_name, self.on_message)
         self.was_consuming = True
-        self._consuming = True
+        self._is_consuming = True
 
     def add_on_cancel_callback(self):
         self._channel.add_on_cancel_callback(self.on_consumer_cancelled)
@@ -134,6 +144,9 @@ class mq_consumer(threading.Thread):
 
         data = payload(body)
         response = self.process_rpc_command(data)
+        # print('processed response')
+        # print(response)
+        # print()
         self.publisher.messages.put(response)
         self.acknowledge_message(basic_deliver.delivery_tag)
 
@@ -170,7 +183,7 @@ class mq_consumer(threading.Thread):
         self._channel.close()
 
     def close_connection(self):
-        self._consuming = False
+        self._is_consuming = False
         if self._connection.is_closing or self._connection.is_closed:
             print('Connection is closing or already closed')
         else:
@@ -204,7 +217,7 @@ class mq_consumer(threading.Thread):
         """
         if not self._closing:
             self._closing = True
-            if self._consuming:
+            if self._is_consuming:
                 self.stop_consuming()
                 # self._connection.ioloop.start()
             else:
@@ -232,6 +245,7 @@ if __name__ == "__main__":
     while True:
         try:
             time.sleep(0.5)
+            con.run()
         except KeyboardInterrupt:
             con.stop()
             break

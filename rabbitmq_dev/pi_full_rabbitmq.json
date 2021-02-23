@@ -1,0 +1,23 @@
+{
+    "config":{
+        "name" : "pi_full",
+        "credentials":{
+            "user" : "devin",
+            "password" : "Ikorgil19"
+        },
+        "rabbit_parameters":{
+            "host" : "169.254.208.1",
+            "port" : 5672,
+            "vhost" : "/",
+            "heartbeat" : 30,
+            "publisher_name" : "pi_full_control_publisher",
+            "consumer_name" : "pi_full_control_consumer"
+        },
+        "exchange" : "rtsh_topics",
+        "routing_keys" :[
+            "rasp.control.full",
+            "rasp.control.all",
+            "rasp.control.test"
+        ]
+    }
+}

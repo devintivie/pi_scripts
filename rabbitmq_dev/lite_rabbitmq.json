@@ -1,0 +1,23 @@
+{
+    "config":{
+        "name" : "pi_lite",
+        "credentials":{
+            "user" : "devin",
+            "password" : "Ikorgil19"
+        },
+        "rabbit_parameters":{
+            "host" : "169.254.208.1",
+            "port" : 5672,
+            "vhost" : "/",
+            "heartbeat" : 120,
+            "publisher_name" : "pi_lite_control_publisher",
+            "consumer_name" : "pi_lite_control_consumer"
+        },
+        "exchange" : "rtsh_topics",
+        "routing_keys" :[
+            "rasp.control.lite",
+            "rasp.control.all",
+            "rasp.control.test"
+        ]
+    }
+}

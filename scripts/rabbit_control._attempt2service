@@ -1,0 +1,33 @@
+[Unit]
+Description=Start rabbit control script
+After=network.target network-online.target develop.mount 
+Requires=network.target network-online.target develop.mount 
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/develop/rabbitmq_dev/
+ExecStart=python3 -u /develop/rabbitmq_dev/pi_rabbit_control.py /develop/rabbitmq_dev/pi1_rabbitmq.json 
+RestartSec=5
+Restart=on-failure
+
+[Install]
+WantedBy=graphical.target.target
+
+
+
+
+
+[Unit]
+Description=Start rabbit control script
+After=network.target network-online.target develop.mount 
+Requires=network.target network-online.target develop.mount 
+
+[Service]
+User=pi
+GuessMainPID=no
+StandardInput=null
+ExecStart=/develop/rabbitmq_dev/rabbit_startup.sh
+
+[Install]
+WantedBy=graphical.target

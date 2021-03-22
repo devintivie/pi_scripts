@@ -1,7 +1,11 @@
 import pika
 import sys
 import functools
-import queue
+print(sys.version_info.major)
+if sys.version_info.major == 3:
+    import queue
+else:
+    import Queue as queue
 import time
 import threading
 
@@ -90,7 +94,7 @@ class mq_publisher(threading.Thread):
         except queue.Empty:
             pass
         except pika.exceptions.ChannelWrongStateError as ex:
-            print(f'wrong state error ={ex}')
+            print('wrong state error =' + str(ex))
 
         finally:
             pass 

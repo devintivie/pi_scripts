@@ -7,7 +7,7 @@ from pi_response_base import *
 
 def getMAC(interface='eth0'):
     try:
-        name = open(f'/sys/class/net/{interface}/address').read()
+        name = open('/sys/class/net/'+interface+'/address').read()
     except:
         name = "00:00:00:00:00:00"
     return name[:17]
@@ -21,25 +21,6 @@ def get_if_ip(interface='eth0'):
     s = None
     return ip_address
 
-def status_check_response(payload):
-    wlan = if_info('wlan0', getMAC('wlan0'), get_if_ip('wlan0'))
-    eth = if_info('eth0', getMAC('eth0'), get_if_ip('eth0'))
-    # wlan_mac = getMAC('wlan0')
-    # waln_ip = get_if_ip('wlan0')
-    # eth_mac = getMAC('eth0')
-    # eth_ip = get_if_ip('eth0')# except :
-    #     return "Bloody Error In'it?" 
-    if_list = list()
-    if_list.append(wlan)
-    if_list.append(eth)
-    response = status_check(if_list=if_list)
-    response.status = "ok"
-    # status = "ok"
-    # response_dict = {
-
-    #     "status" : status
-    # }
-    return response.__dict__
 
 class callable_dict(dict):
     def __getitem__(self, key):
@@ -50,10 +31,9 @@ class callable_dict(dict):
 
 commands = {
     "status_check" : lambda x : status_check_response(x),
+    "start_poll" : lambda x : start_poll_response(x)
     # "identity" : response_identity
 }
-
-
 
 class pi_command_processor(object):
     def process(self, data):
@@ -62,3 +42,17 @@ class pi_command_processor(object):
 
         response_object = commands[command](payload)
         return response_object
+
+def status_check_response(payload):
+    wlan = if_info('wlan0', getMAC('wlan0'), get_if_ip('wlan0'))
+    eth = if_info('eth0', getMAC('eth0'), get_if_ip('eth0'))
+    if_list = list()
+    if_list.append(wlan)
+    if_list.append(eth)
+    response = status_check(if_list=if_list)
+    response.status = "ok"
+    return response.__dict__
+
+def start_poll_response(payload):
+    response = start_poll(payload)
+    return response.__dict__

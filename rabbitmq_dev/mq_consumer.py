@@ -31,10 +31,7 @@ class mq_consumer(threading.Thread):
         self._channel = None
         self._closing = False
         self._consumer_tag = None
-        # self._url = amqp_url
         self._is_consuming = False
-        # In production, experiment with higher prefetch values
-        # for higher consumer throughput
         self._prefetch_count = 1
         
 
@@ -56,12 +53,12 @@ class mq_consumer(threading.Thread):
         self._connection.channel(on_open_callback=self.on_channel_open)
 
     def on_connection_open_error(self, _unused_connection, err):
-        print(f'on connection error = {err}')
+        print('on connection error = ' +str(err))
         self.reconnect()
 
     def on_connection_closed(self, _unused_connection, reason):
         self._channel = None
-        print(f' connection_closed_reason = {reason}')
+        print('connection_closed_reason = ' +str(reason))
         if self._closing:
             self._connection.ioloop.stop()
         else:
@@ -77,7 +74,7 @@ class mq_consumer(threading.Thread):
         self._channel.add_on_close_callback(self.on_channel_closed)
 
     def on_channel_closed(self, channel, reason):
-        print(f'channel closed, reason = {reason}')
+        print('channel closed, reason = ' +str(reason))
         self.close_connection()
 
     def setup_exchange(self):#, exchange_name):
@@ -143,14 +140,14 @@ class mq_consumer(threading.Thread):
         """
 
         data = payload(body)
-        response = self.process_rpc_command(data)
+        response = self.process_command(data)
         # print('processed response')
         # print(response)
         # print()
         self.publisher.messages.put(response)
         self.acknowledge_message(basic_deliver.delivery_tag)
 
-    def process_rpc_command(self, data):
+    def process_command(self, data):
         command = data.command
         # payload = data.payload
 
@@ -158,7 +155,7 @@ class mq_consumer(threading.Thread):
 
         o = {
             "header" : {
-                "command" : f"{command}_response",
+                "command" : command + "_response",
                 "hostname" : self.name,
             },
             "payload" : response 

@@ -10,13 +10,13 @@ if len(sys.argv) > 1:
     config_file = sys.argv[1]
 else:
     config_file = 'test_rabbitmq.json'
-print(f'rabbit config file = {config_file}')
+# print(f'rabbit config file = {config_file}')
 try:
-    with open(f'{config_file}') as f:
+    with open(config_file) as f:
         config = json.load(f)['config']
 except FileNotFoundError as error:
     curr_dir = os.path.dirname(__file__)
-    with open(f'{curr_dir}/{config_file}') as f:
+    with open(curr_dir + '/' +config_file) as f:
         config = json.load(f)['config']
 
 print('pi json loaded')

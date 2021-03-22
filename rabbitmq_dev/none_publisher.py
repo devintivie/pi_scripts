@@ -1,7 +1,11 @@
 import pika
 import sys
 import functools
-import queue
+print(sys.version_info.major)
+if sys.version_info.major == 3:
+    import queue
+else:
+    import Queue as queue
 import time
 import threading
 

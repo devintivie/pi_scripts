@@ -1,58 +1,107 @@
 
-import socket
-import fcntl
-import struct
+import sys
+sys.path.append('../boonton_src')
+sys.path.append('../rabbitmq_dev')
 
 from pi_response_base import *
+from boonton_manager import *
+from pi_interface_helpers import *
 
-def getMAC(interface='eth0'):
-    try:
-        name = open('/sys/class/net/'+interface+'/address').read()
-    except:
-        name = "00:00:00:00:00:00"
-    return name[:17]
-
-def get_if_ip(interface='eth0'):
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        ip_address = socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', bytes(interface[:15], 'utf-8')))[20:24])
-    except OSError:
-        ip_address = 'if down'
-    s = None
-    return ip_address
-
-
-class callable_dict(dict):
-    def __getitem__(self, key):
-        val = super().__getitem__(key)
-        if callable(val):
-            return val()
-        return val
-
-commands = {
-    "status_check" : lambda x : status_check_response(x),
-    "start_poll" : lambda x : start_poll_response(x)
-    # "identity" : response_identity
-}
+# commands = {
+#     "status_check" : lambda x : status_check_response(x),
+#     "start_poll" : lambda x : start_poll_response(x),
+#     "stop_poll" : lambda x : stop_poll_response(x)
+#     # "identity" : response_identity
+# }
 
 class pi_command_processor(object):
-    def process(self, data):
+    def __init__(self, config, publisher):
+        self.publisher = publisher
+        self.name = config['name']
+        self.config = config['boonton_parameters']
+        # self.commands = commands
+        self.boonton_manager = boonton_manager(self.config, self.publisher)
+
+
+        # self.processing_commands = callable_dict({
+        #     "status_check" : lambda x : self.status_check_response(x),
+        #     # "identity" : response_identity
+        # })
+        # self.processing_commands = {
+        #     {'status_check': lambda x: self.status_check_response(x)}
+        # }
+
+    # def process(self, data):
+    #     command = data.command
+    #     payload = data.payload
+
+    #     response_object = self.commands[command](payload)
+    #     return response_object
+
+    def get_processing_method(self, command, payload):
+        if command == 'status_check':
+            response_command = f'{command}_response'
+            response_object = self.status_check_response(payload)
+        elif command == 'start_poll':
+            response_command = f'{command}_response'
+            response_object = self.start_poll_response(payload)
+        elif command == 'stop_poll':
+            response_command = f'{command}_response'
+            response_object = self.stop_poll_response(payload)
+        else:
+            response_command = f'unknown_response'
+            response_object = self.unknown_response()
+        # response_object = self.processing_commands[command](payload)
+
+        o = {
+            "header" : {
+                "command" : response_command,
+                "hostname" : self.name,
+            },
+            "payload" : response_object 
+        }
+        return o
+
+    def process_command(self, data):
         command = data.command
         payload = data.payload
+        print(f'processing command {command}')
+        o = self.get_processing_method(command, payload)
 
-        response_object = commands[command](payload)
-        return response_object
+        response_json = json.dumps(o, indent=2)
+        self.publisher.messages.put(response_json)
 
-def status_check_response(payload):
-    wlan = if_info('wlan0', getMAC('wlan0'), get_if_ip('wlan0'))
-    eth = if_info('eth0', getMAC('eth0'), get_if_ip('eth0'))
-    if_list = list()
-    if_list.append(wlan)
-    if_list.append(eth)
-    response = status_check(if_list=if_list)
-    response.status = "ok"
-    return response.__dict__
+    def status_check_response(self, payload):
+        wlan = if_info('wlan0', getMAC('wlan0'), get_if_ip('wlan0'))
+        eth = if_info('eth0', getMAC('eth0'), get_if_ip('eth0'))
+        if_list = list()
+        if_list.append(wlan)
+        if_list.append(eth)
+        response = status_check(if_list=if_list)
+        response.status = "ok"
+        return response.__dict__
 
-def start_poll_response(payload):
-    response = start_poll(payload)
-    return response.__dict__
+    def start_poll_response(self, payload):
+        print('received start poll command')
+        response = self.start_poll_power_meters()
+        return response.__dict__
+
+    def stop_poll_response(self, payload):
+        print('received stop poll command')
+        response = self.stop_poll_power_meters()
+        return response.__dict__
+
+    def unknown_response(self):
+        return dict()
+
+    def start_poll_power_meters(self):
+        response = command_response()
+        response.status = "started"
+        print('started')
+        return response
+
+    def stop_poll_power_meters(self):
+        response = command_response()
+        response.status = "stopped"
+        print('stopped')
+        return response

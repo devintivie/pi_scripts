@@ -1,10 +1,18 @@
+
+import os
+import json
+import time
+import pika
+import sys
+
+sys.path.append('../boonton_src')
+sys.path.append('../rabbitmq_dev')
+print(sys.path)
 from mq_consumer import *
 from mq_publisher import *
 from none_publisher import *
 from pi_command_processor import pi_command_processor
-import os
-import json
-import time
+
 
 print('pi rabbit control starting')
 if len(sys.argv) > 1:
@@ -50,10 +58,10 @@ con_parameters = pika.ConnectionParameters(
     })
 
 print('pi parameters set')
-processor = pi_command_processor()
 pub = mq_publisher(pub_parameters)
+processor = pi_command_processor(config, pub)
 file_routing = list(config['routing_keys'])
-con = mq_consumer(config['name'], con_parameters, file_routing, pub, processor)
+con = mq_consumer(con_parameters, file_routing, processor)
 print('publisher start run()')
 pub.start()
 print('consumer start run()')

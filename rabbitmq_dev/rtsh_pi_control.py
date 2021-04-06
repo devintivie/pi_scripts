@@ -1,7 +1,6 @@
 from mq_consumer import *
 from mq_publisher import *
 from none_publisher import *
-from pi_command_processor import pi_command_processor
 import os
 import json
 import time
@@ -10,7 +9,7 @@ print('pi rabbit control starting')
 if len(sys.argv) > 1:
     config_file = sys.argv[1]
 else:
-    config_file = 'config/test_rabbitmq.json'
+    config_file = 'test_rabbitmq.json'
 # print(f'rabbit config file = {config_file}')
 try:
     with open(config_file) as f:
@@ -50,30 +49,29 @@ con_parameters = pika.ConnectionParameters(
     })
 
 print('pi parameters set')
-processor = pi_command_processor()
 pub = mq_publisher(pub_parameters)
 file_routing = list(config['routing_keys'])
-con = mq_consumer(config['name'], con_parameters, file_routing, pub, processor)
+con = mq_consumer(config['name'], con_parameters, file_routing, pub)
 print('publisher start run()')
-pub.start()
+pub.run()
 print('consumer start run()')
-con.start()
+con.run()
 print('publisher post run()')
 print()
 print('listening for routing keys as')
 for fr in file_routing:
     print(fr)
 
-# while True:
-#     try:
-#         time.sleep(0.5)
-#         # if(con.should_reconnect):
-#         #     print('need to reconnect')
-#         #     con.connect()
-#         # else:
-#         #     print('running fine')
-#         # con.run()
-#     except KeyboardInterrupt:
-#         con.interrupt()
-#         pub.interrupt()
-#         break
+while True:
+    try:
+        time.sleep(0.5)
+        # if(con.should_reconnect):
+        #     print('need to reconnect')
+        #     con.connect()
+        # else:
+        #     print('running fine')
+        # con.run()
+    except KeyboardInterrupt:
+        con.stop()
+        pub.stop()
+        break

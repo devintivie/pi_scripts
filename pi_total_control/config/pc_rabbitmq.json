@@ -1,23 +1,20 @@
 {
     "config":{
-        "name" : "test",
+        "name" : "pc",
         "credentials":{
             "user" : "devin",
             "password" : "Ikorgil19"
         },
         "rabbit_parameters":{
-            "host" : "169.254.208.1",
-            "port" : 5672,
+            "host" : "192.168.68.109",
+            "port" : "5672",
             "vhost" : "/",
-            "heartbeat" : 15,
-            "publisher_name" : "test_control_publisher",
-            "consumer_name" : "test_control_consumer"
+            "heartbeat" : 0
         },
         "exchange" : "rtsh_topics",
         "routing_keys" :[
             "rasp.control.pi1",
-            "rasp.control.all",
-            "rasp.control.test"
+            "rasp.control.all"
         ]
     }
 }

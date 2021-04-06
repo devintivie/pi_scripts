@@ -1,6 +1,6 @@
 {
     "config":{
-        "name" : "test",
+        "name" : "pi_full",
         "credentials":{
             "user" : "devin",
             "password" : "Ikorgil19"
@@ -9,13 +9,13 @@
             "host" : "169.254.208.1",
             "port" : 5672,
             "vhost" : "/",
-            "heartbeat" : 15,
-            "publisher_name" : "test_control_publisher",
-            "consumer_name" : "test_control_consumer"
+            "heartbeat" : 30,
+            "publisher_name" : "pi_full_control_publisher",
+            "consumer_name" : "pi_full_control_consumer"
         },
         "exchange" : "rtsh_topics",
         "routing_keys" :[
-            "rasp.control.pi1",
+            "rasp.control.full",
             "rasp.control.all",
             "rasp.control.test"
         ]

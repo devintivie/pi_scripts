@@ -7,6 +7,10 @@ class status_check(object):
         for iface in if_list:
             self.interfaces.append(iface.__dict__)
 
+class command_response(object):
+    pass
+    
+
 class if_info(object):
     def __init__(self, if_name, mac, ip):
         self.name = if_name

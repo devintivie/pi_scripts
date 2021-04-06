@@ -12,8 +12,10 @@ import threading
 class mq_publisher(threading.Thread):
     def __init__(self, parameters):
         threading.Thread.__init__(self)
+        self.run_event = threading.Event()
         self.connection_parameters = parameters
         # self.name = name
+
         self.exchange_name = "rtsh_topics"
         self.routing_key='master.control.response'
         self.messages = queue.Queue()
@@ -21,6 +23,7 @@ class mq_publisher(threading.Thread):
         self.queue_name = ''
         self._channel = None
         self._connection = None
+        
 
     def connect(self):
         conn = pika.SelectConnection(
@@ -32,19 +35,26 @@ class mq_publisher(threading.Thread):
 
         self._connection = conn
 
-
-
     def on_connection_open(self, _unused_connection):
         self._connection.channel(on_open_callback=self.on_channel_open)
 
-    def on_connection_open_error(self, _unused_connection, err):
-
-        self.stop()
+    def on_connection_open_error(self, _unused_connection, problem):
+        print(f'connection open error -> {problem}')
+        self._connection.ioloop.call_later(5, self._connection.ioloop.stop)
+        # self.stop()
 
     def on_connection_closed(self, connection, reason):
+        print(f'connection closed: reason -> {reason}')
         self._channel = None
-        print(reason)
-        self._connection.ioloop.stop()
+        if self._stopping:
+            print('connection closed, stopping?')
+            self._connection.ioloop.stop()
+        else:
+            print('connection closed, reconnect?')
+            self._connection.ioloop.call_later(5, self._connection.ioloop.stop)
+        # self._channel = None
+        # print(reason)
+        # self._connection.ioloop.stop()
 
     def on_channel_open(self, channel):
         self._channel = channel
@@ -55,6 +65,7 @@ class mq_publisher(threading.Thread):
         self._channel.add_on_close_callback(self.on_channel_closed)
 
     def on_channel_closed(self, channel, reason):
+        print(f'channel closed -> {reason}')
         self._channel = None
         if not self._stopping:
             self.close_channel()
@@ -67,7 +78,6 @@ class mq_publisher(threading.Thread):
             exchange_type='topic', 
             callback = cb)
         
-
     def on_exchange_declareok(self, _unused_frame, userdata):
         # self.setup_queue()
         self.start_publishing()
@@ -108,8 +118,6 @@ class mq_publisher(threading.Thread):
         # self.schedule_next_message()
         # self._connection.add_timeout(0.001, self.schedule_next_message)
 
-
-
     def stop(self):
         self._stopping = True
         self.close_channel()
@@ -128,23 +136,28 @@ class mq_publisher(threading.Thread):
             self._connection.close()
 
     def run(self):
-        # while True:
-        try:
-            self.connect()
-            self._connection.ioloop.start()
-        except KeyboardInterrupt:
-            print('control c seen')
-            self.stop()
-            if (self._connection is not None and
-                    not self._connection.is_closed):
-                # Finish closing
+        while not self.run_event.is_set():
+            try:
+                self.connect()
                 self._connection.ioloop.start()
+            except KeyboardInterrupt:
+                print('control c seen')
+                if self.interrupt():
+                    break
 
-
+    def interrupt(self):
+        # self._connection.ioloop.stop()
+        self.stop()
+        if self._connection is not None:# and
+                # not self._connection.is_closed):
+            # Finish closing
+            self._connection.ioloop.stop()
+            return True
+        return False
 
 if __name__ == "__main__":
 
-    time.sleep(30)
+    # time.sleep(30)
     if len(sys.argv) > 1:
         name = sys.argv[1]
     else:
@@ -155,11 +168,13 @@ if __name__ == "__main__":
         port=5672, 
         virtual_host='/', 
         credentials=credentials,
-        heartbeat=0)
+        heartbeat=30)
 
     pub = mq_publisher(parameters)
     print('publisher start run()')
     pub.run()
+    # if pub.is_alive():
+    #     pub.join()
 
     print('publisher post run()')
 

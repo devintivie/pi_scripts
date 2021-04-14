@@ -22,13 +22,16 @@ class boonton_55318:
         self.publisher = publisher
 
     def initialize(self):
-        if not self._handle:
+        if self._handle:
             c_handle = c_int()
-            ans = self._lib.Btn55xxx_init(f"USB::0x1BFE::0x5500::{self.serial}::BTN", byref(c_handle))
-            if ans:
-                print(f'ERROR: {ans}')
-            else:
-                self._handle = c_handle
+            try:
+                ans = self._lib.Btn55xxx_init(f"USB::0x1BFE::0x5500::{self.serial}::BTN", byref(c_handle))
+                if ans:
+                    print(f'ERROR: {ans}')
+                else:
+                    self._handle = c_handle
+            except Exception as ex :
+                print(f'init exception {ex}')
 
     def close(self):
         if self._handle:

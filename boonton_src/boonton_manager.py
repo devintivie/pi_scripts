@@ -16,7 +16,8 @@ class boonton_manager:
         self.sensors = dict()
         self.config = config
         self.publisher = mq_publisher
-        self.startup()
+        # self.startup()startup
+
 
     def startup(self):
         sensors = self.get_sensors()
@@ -31,7 +32,7 @@ class boonton_manager:
         string_val = create_string_buffer(128)
         result = self.lib.Btn55xxx_FindResources(";", 128, string_val)
         val = get_ctype_string(string_val)
-        
+        print(result)
         parts = val.split(';')
         return parts
 
@@ -45,7 +46,8 @@ class boonton_manager:
     def init_all_sensors(self):
         print('inside init sensors')
         print(f'sensor count = {len(self.sensors)}')
-        for sensor in self.sensors.values():
+        for k ,sensor in self.sensors.items():
+            print(f'init {k}')
             sensor.initialize()
 
     def close_all_sensors(self):
@@ -54,7 +56,8 @@ class boonton_manager:
             
     def reset_all_sensors(self):
         print('inside reset sensors')
-        for sensor in self.sensors.values():
+        for serial,sensor in self.sensors.items():
+            print(f'reset sensor serial')
             sensor.reset()
 
     

@@ -12,6 +12,7 @@ from mq_consumer import *
 from mq_publisher import *
 from none_publisher import *
 from pi_command_processor import pi_command_processor
+from boonton_control_cmd import *
 
 
 print('pi rabbit control starting')
@@ -59,7 +60,8 @@ con_parameters = pika.ConnectionParameters(
 
 print('pi parameters set')
 pub = mq_publisher(pub_parameters)
-processor = pi_command_processor(config, pub)
+boonton_control = boonton_manager(config, pub)
+processor = pi_command_processor(config, pub, boonton_control)
 file_routing = list(config['routing_keys'])
 con = mq_consumer(con_parameters, file_routing, processor)
 print('publisher start run()')
@@ -71,6 +73,12 @@ print()
 print('listening for routing keys as')
 for fr in file_routing:
     print(fr)
+
+# try:        
+#     boonton_control_cmd(boonton_control).cmdloop()
+# except KeyboardInterrupt:
+#     pass
+
 
 # while True:
 #     try:

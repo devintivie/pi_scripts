@@ -25,8 +25,8 @@ class boonton_manager:
         self.create_sensors(sensors)
         print('init sensors')
         self.init_all_sensors()
-        print('reset sensors')
-        self.reset_all_sensors()
+        # print('reset sensors')
+        # self.reset_all_sensors()
 
     def get_sensors(self):
         string_val = create_string_buffer(128)
@@ -39,25 +39,35 @@ class boonton_manager:
     def create_sensors(self, device_list):
         for a in device_list:
             serial = a[21:26]
-            print(f'<{serial}>')
-            if serial != '':
-                self.sensors[serial] = boonton_55318(self.lib, serial, self.config, self.publisher)
+            if not serial in self.sensors:
+                print(f'adding <{serial}>')
+                if serial != '':
+                    self.sensors[serial] = boonton_55318(self.lib, serial, self.config, self.publisher)
+            else:
+                print(f'<{serial}> is already active')
             
     def init_all_sensors(self):
         print('inside init sensors')
         print(f'sensor count = {len(self.sensors)}')
         for k ,sensor in self.sensors.items():
             print(f'init {k}')
-            sensor.initialize()
+            if not sensor._handle:
+                print(f'{k} : start init')
+                sensor.initialize()
 
     def close_all_sensors(self):
-        for sensor in self.sensors.values():
+        remove_list = list()
+        for serial, sensor in self.sensors.items():
             sensor.close()
+            remove_list.append(serial)
+        for s in remove_list:
+            sensor = self.sensors.pop(s, None)
+            del sensor
             
     def reset_all_sensors(self):
         print('inside reset sensors')
         for serial,sensor in self.sensors.items():
-            print(f'reset sensor serial')
+            print(f'reset sensor {serial}')
             sensor.reset()
 
     

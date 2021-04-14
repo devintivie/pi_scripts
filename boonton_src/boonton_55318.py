@@ -3,11 +3,16 @@ import sys
 
 from ctypes import *
 from boonton_helpers import *
+import boonton_helpers
 import math
 
-CHANNEL_STRING = "CH1"
+CHANNEL_STRING = b'CH1'
 TRACE_LENGTH = 501
 DEFAULT_POWER = -30.0
+
+def to_bytes(string):
+    return bytes(string, encoding = 'utf-8')
+
 class boonton_55318:
     def __init__(self, lib, serial_num, config, publisher):
         self._lib = lib
@@ -21,15 +26,26 @@ class boonton_55318:
         self.trace_fresh = dict()
         self.publisher = publisher
 
+        self.status = boonton_status.not_initialized
+
+    @property
+    def is_initialized(self):
+        return self._handle != None
+
     def initialize(self):
-        if self._handle:
+        if not self._handle:
+            # print('no handle so initialize')
             c_handle = c_int()
             try:
-                ans = self._lib.Btn55xxx_init(f"USB::0x1BFE::0x5500::{self.serial}::BTN", byref(c_handle))
+                resource_name = f"USB::0x1BFE::0x5500::{self.serial}::BTN"
+                ans = self._lib.Btn55xxx_init(to_bytes(resource_name), byref(c_handle))
                 if ans:
-                    print(f'ERROR: {ans}')
+                    self.status = boonton_helpers.get_error_msg(ans)
+                    print(f'ERROR: {self.status}')
                 else:
                     self._handle = c_handle
+                    self.status = boonton_status.initialized
+                    # print(f'self._handle = {self._handle.value}')
             except Exception as ex :
                 print(f'init exception {ex}')
 
@@ -37,15 +53,18 @@ class boonton_55318:
         if self._handle:
             ans = self._lib.Btn55xxx_close(self._handle)
             if ans:
-                print(f"ERROR: close{self.serial} -> {ans}")
+                self.status = boonton_helpers.get_error_msg(ans)
+                print(f"ERROR: close{self.serial} -> {self.status}")
             else:
                 self._handle = None
+                self.status = boonton_status.closed
 
     def reset(self):
         if self._handle:
             ans = self._lib.Btn55xxx_reset(self._handle)
             if ans:
-                print(f"ERROR: reset {self.serial} -> {ans}")
+                self.status = boonton_helpers.get_error_msg(ans)
+                print(f"ERROR: reset {self.serial} -> {self.status}")
 
     def get_current_temp(self):
         if self._handle:
@@ -205,7 +224,7 @@ class boonton_55318:
 
     def get_average(self):
         c_average = c_int()
-        self._lib.Btn55xxx_GetAverage(self._handle, byref(c_average))
+        self._lib.Btn55xxx_GetAverage(self._handle, CHANNEL_STRING, byref(c_average))
         self.trig_settings['average'] = c_average.value
 
     def set_bandwidth(self, bandwidth):
@@ -215,7 +234,7 @@ class boonton_55318:
 
     def get_bandwidth(self):
         c_bandwidth = c_int()
-        self._lib.Btn55xxx_GetBandwidth(self._handle, byref(c_bandwidth))
+        self._lib.Btn55xxx_GetBandwidth(self._handle, CHANNEL_STRING, byref(c_bandwidth))
         self.trig_settings['video_bandwidth'] = c_bandwidth.value
 
     def set_units(self, units):
@@ -227,17 +246,20 @@ class boonton_55318:
 
     def get_units(self):
         c_unit = c_int()
-        self._lib.Btn55xxx_GetUnits(self._handle, byref(c_unit))
+        self._lib.Btn55xxx_GetUnits(self._handle, CHANNEL_STRING, byref(c_unit))
         self.trig_settings['units'] = c_unit.value
 
     def set_frequency(self, frequency):
-        c_frequency = c_float(frequency.value)
-        usb_error = self._lib.Btn55xxx_SetFrequency(self._handle, c_frequency)
-        return usb_error
+        c_frequency = c_float(frequency)
+        usb_error = self._lib.Btn55xxx_SetFrequency(self._handle, CHANNEL_STRING, c_frequency)
+        if usb_error:
+                self.status = boonton_helpers.get_error_msg(usb_error)
+                print(f"ERROR: reset {self.serial} -> {self.status}")
 
     def get_frequency(self):
         c_frequency = c_float()
-        self._lib.Btn55xxx_GetFrequency(self._handle, byref(c_frequency))
+        ans = self._lib.Btn55xxx_GetFrequency(self._handle, CHANNEL_STRING, byref(c_frequency))
+        print(f'get frequency {ans} and {c_frequency.value}')
         self.trig_settings['frequency'] = c_frequency.value
 
     def set_continuous_measurement(self, onoff):
@@ -402,10 +424,10 @@ class boonton_55318:
             
 
 
-    def timer_tick(self):
+    # def timer_tick(self):
         #Poll power meters
 
-        poll = self.poll_data(pull_trace)
+        # poll = self.poll_data(pull_trace)
 
 
 

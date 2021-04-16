@@ -2,6 +2,8 @@
 
 import os
 import sys
+import json
+import time
 from ctypes import *
 from boonton_55318 import *
 from boonton_helpers import *
@@ -70,4 +72,38 @@ class boonton_manager:
             print(f'reset sensor {serial}')
             sensor.reset()
 
+    def trace_read(self, serial):
+        self.sensors[serial].trace_read()
+        data = self.sensors[serial].trace
+
+        print(f'data datatype = {type(data)}')
+        jo = {
+            "header" : {
+                "type" : "trace",
+                "serial" : serial 
+            },
+            "payload" :{
+                "data" : data
+            }
+        }
+        response = json.dumps(jo, indent=2)
+        self.publisher.messages.put(response)
+        time.sleep(1.5)
+
+
+
+
     
+
+if __name__ == "__main__":
+    import sys
+    sys.path.append('../rabbitmq_dev')
+    from none_publisher import *
+    
+    config = None
+    publisher = none_publisher()
+    publisher.start()
+    boonton_control = boonton_manager(config, publisher)
+    boonton_control.startup()
+
+    boonton_control.trace_read('10208')

@@ -20,7 +20,7 @@ class boonton_55318:
         self._handle = None
         self.config = config
         self.trig_settings = dict()
-        self.trace = dict()
+        self.trace = list()
         self.gates= list()
         self.trace_sum = dict()
         self.trace_fresh = dict()
@@ -299,8 +299,8 @@ class boonton_55318:
     def trace_read(self):
         '''Read a 501-point trace from sensor. If trigger is stopped, 
         sensor single-triggers. If no trigger is present, all NaNs are returns'''
+        print('clear trace')
         self.trace.clear()
-        self.trace = None
         self.trace_fresh = True # for gate read
 
         actual_size = c_int()
@@ -310,16 +310,23 @@ class boonton_55318:
         usb_error = self._lib.Btn55xxx_FetchWaveform(self._handle, CHANNEL_STRING, 
                                         TRACE_LENGTH, trace, byref(actual_size))
 
-        if usb_error:
-            print(f'ERROR: {usb_error} : trace read {self.serial} {actual_size.value}')
+        i = 0
+        for raw in trace:
+            print(f'raw data[{i}] = {raw}')
+            print(type(raw))
+            i +=1
+        # if usb_error:
+        print(f'ERROR: {usb_error} : trace read {self.serial} {actual_size.value}')
         
         #Handle trace data
         #Default data is float or string???
         for val in trace:
             if math.isnan(val) or val < DEFAULT_POWER:
                 val = DEFAULT_POWER
+            self.trace.append(val)
+            # print(type(val))
 
-        self.trace = trace
+        # self.trace = trace
 
     def trace_read_blocking(self):
         '''Read a 501-point trace from sensor. If trigger is stopped, 

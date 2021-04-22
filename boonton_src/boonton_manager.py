@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import time
+import threading
 from ctypes import *
 from boonton_55318 import *
 from boonton_helpers import *
@@ -19,7 +20,9 @@ class boonton_manager:
         self.config = config
         self.publisher = mq_publisher
         # self.startup()startup
-
+        self.polling = False
+        self.poll_thread = threading.Thread(target=self.poll_power_meters)
+        self.poll_thread.start()
 
     def startup(self):
         sensors = self.get_sensors()
@@ -72,24 +75,42 @@ class boonton_manager:
             print(f'reset sensor {serial}')
             sensor.reset()
 
-    def trace_read(self, serial):
-        self.sensors[serial].trace_read()
-        data = self.sensors[serial].trace
+    # def trace_read(self, serial):
+    #     self.sensors[serial].trace_read()
+    #     data = self.sensors[serial].trace
 
-        print(f'data datatype = {type(data)}')
-        jo = {
-            "header" : {
-                "type" : "trace",
-                "serial" : serial 
-            },
-            "payload" :{
-                "data" : data
-            }
-        }
-        response = json.dumps(jo, indent=2)
-        self.publisher.messages.put(response)
-        time.sleep(1.5)
+    #     print(f'data datatype = {type(data)}')
+    #     jo = {
+    #         "header" : {
+    #             "type" : "trace",
+    #             "serial" : serial 
+    #         },
+    #         "payload" :{
+    #             "data" : data
+    #         }
+    #     }
+    #     response = json.dumps(jo, indent=2)
+    #     self.publisher.messages.put(response)
+    #     time.sleep(1.5)
 
+    def start_polling_power_meters(self):
+        self.polling = True
+
+    def stop_polling_power_meters(self):
+        self.polling = False
+
+    def poll_power_meters(self):
+        print('poll power meters enter')
+        while True:
+            if self.polling:
+                for x in self.sensors.values():
+                    x.trace_read()
+                    print('poll power meters save trace start')
+                    x.save_trace()
+            # else:
+            time.sleep(2)
+
+        print('poll power meters exit')
 
 
 

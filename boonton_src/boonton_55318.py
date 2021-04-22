@@ -4,7 +4,9 @@ import sys
 from ctypes import *
 from boonton_helpers import *
 import boonton_helpers
+from pi_response_base import *
 import math
+import json
 
 CHANNEL_STRING = b'CH1'
 TRACE_LENGTH = 501
@@ -26,6 +28,9 @@ class boonton_55318:
         self.trace_fresh = dict()
         self.publisher = publisher
 
+        self.power_max = 20.0
+        self.power_min = DEFAULT_POWER
+        self.load_default_settings()
         self.status = boonton_status.not_initialized
 
     @property
@@ -66,6 +71,16 @@ class boonton_55318:
                 self.status = boonton_helpers.get_error_msg(ans)
                 print(f"ERROR: reset {self.serial} -> {self.status}")
 
+    def load_default_settings(self):
+        self.set_trig_mode(boonton_trigger_mode.normal)
+        self.set_trig_source(boonton_trigger_source.external)
+        self.set_trig_slope(boonton_trigger_slope.positive)
+        self.set_trig_delay(0)
+        self.set_timespan(50e-6)
+        self.set_average(1)
+        self.set_bandwidth(boonton_bandwidth.high)
+        self.set_units(boonton_units.dBm)
+
     def get_current_temp(self):
         if self._handle:
             c_temp = c_double()
@@ -96,21 +111,26 @@ class boonton_55318:
         self.get_frequency()
     
     def get_trig_settings(self):
-        self.get_trig_settings()
+        self.update_trig_settings()
         return self.trig_settings
 
     def set_timebase(self, timebase):
-        "Set trace time per division (5E-9 to 50E-3, 10 divisions per trace)"
+        #Set trace time per division (5E-9 to 50E-3, 10 divisions per trace)
         valid_times = (5e-9, 10e-9, 20e-9, 50e-9, 100e-9, 200e-9, 500e-9,
                 1e-6, 2e-6, 5e-6, 10e-6, 20e-6, 50e-6, 100e-6, 200e-6,
                 500e-6, 1e-3, 2e-3, 5e-3, 10e-3, 20e-3, 50e-3)
         if timebase in valid_times:
-            c_timebase = c_float(timebase)
-            usb_error = self._lib.Btn55xxx_SetTimebase(self._handle, c_timebase)
-            return usb_error
+            try:
+
+                c_timebase = c_float(timebase)
+                usb_error = self._lib.Btn55xxx_SetTimebase(self._handle, c_timebase)
+                return usb_error
+            except Exception as ex:
+                return str(ex)
         else:
-            print('ERROR : Sensor adjusted invalid timebase')
-            return None
+            msg = 'ERROR : Sensor adjusted invalid timebase'
+            print(msg)
+            return msg
 
     def get_timebase(self):
         c_timebase = c_float()
@@ -119,17 +139,21 @@ class boonton_55318:
         return usb_error
     
     def set_timespan(self, timespan):
-        "Set trace time per division (5E-9 to 50E-3, 10 divisions per trace)"
+        #Set trace time per division (5E-9 to 50E-3, 10 divisions per trace)
         valid_times = (50e-9, 100e-9, 200e-9, 500e-9, 1e-6, 2e-6, 5e-6, 10e-6, 
                 20e-6, 50e-6, 100e-6, 200e-6, 500e-6, 1e-3, 2e-3, 5e-3, 10e-3, 
                 20e-3, 50e-3, 100e-3, 200e-3, 500e-3)
         if timespan in valid_times:
-            c_timespan = c_float(timespan)
-            usb_error = self._lib.Btn55xxx_SetTimespan(self._handle, c_timespan)
-            return usb_error
+            try:
+                c_timespan = c_float(timespan)
+                usb_error = self._lib.Btn55xxx_SetTimespan(self._handle, c_timespan)
+                return usb_error
+            except Exception as ex:
+                return str(ex)
         else:
-            print('ERROR : Sensor adjusted invalid timespan')
-            return None
+            msg = 'ERROR : Sensor adjusted invalid timespan'
+            print(msg)
+            return msg
 
     def get_timespan(self):
         c_timespan = c_float()
@@ -138,10 +162,13 @@ class boonton_55318:
         return usb_error
 
     def set_trig_level(self, level):
-        "Set trigger level in dBm"
-        c_level = c_float(level)
-        usb_error = self._lib.Btn55xxx_SetTrigLevel(self._handle, c_level)
-        return usb_error
+        #Set trigger level in dBm
+        try:
+            c_level = c_float(level)
+            usb_error = self._lib.Btn55xxx_SetTrigLevel(self._handle, c_level)
+            return usb_error
+        except Exception as ex:
+            return str(ex)
 
     def get_trig_level(self):
         c_trig_level = c_float()
@@ -157,9 +184,12 @@ class boonton_55318:
                 raise ArgumentError('Method not typically used, double check usage')
         else:
             if isinstance(mode, boonton_trigger_mode):
-                c_mode = c_int(mode.value)
-                usb_error = self._lib.Btn55xxx_SetTrigMode(self._handle, c_mode)
-                return usb_error
+                try:
+                    c_mode = c_int(mode.value)
+                    usb_error = self._lib.Btn55xxx_SetTrigMode(self._handle, c_mode)
+                    return usb_error
+                except Exception as ex:
+                    return str(ex)
             return b'invalid mode error'
 
     def get_trig_mode(self):
@@ -168,9 +198,15 @@ class boonton_55318:
         self.trig_settings['trig_mode'] = c_trig_mode.value
 
     def set_trig_slope(self, slope):
-        c_slope = c_int(slope.value)
-        usb_error = self._lib.Btn55xxx_SetTrigSlope(self._handle, c_slope)
-        return usb_error
+        try:
+            if isinstance(slope, boonton_trigger_slope):
+                c_slope = c_int(slope.value)
+            else:
+                c_slope = c_int(slope)
+            usb_error = self._lib.Btn55xxx_SetTrigSlope(self._handle, c_slope)
+            return usb_error
+        except Exception as ex:
+            return str(ex)
 
     def get_trig_slope(self):
         c_trig_slope = c_int()
@@ -178,7 +214,7 @@ class boonton_55318:
         self.trig_settings['trig_slope'] = c_trig_slope.value
 
     def set_trig_position(self, position):
-        c_trig_position = c_float(position.value)
+        c_trig_position = c_float(position)
         usb_error = self._lib.Btn55xxx_SetTrigVernier(self._handle, c_trig_position)
         return usb_error
 
@@ -188,7 +224,7 @@ class boonton_55318:
         self.trig_settings['trig_position'] = c_trig_position.value
 
     def set_trig_delay(self, delay):
-        c_trig_delay = c_int(delay.value)
+        c_trig_delay = c_int(delay)
         usb_error = self._lib.Btn55xxx_SetTrigDelay(self._handle, c_trig_delay)
         return usb_error
 
@@ -198,7 +234,7 @@ class boonton_55318:
         self.trig_settings['trig_delay'] = c_trig_delay.value
 
     def set_trig_holdoff(self, holdoff):
-        c_trig_holdoff = c_float(holdoff.value)
+        c_trig_holdoff = c_float(holdoff)
         usb_error = self._lib.Btn55xxx_SetTrigHoldoff(self._handle, c_trig_holdoff)
         return usb_error
 
@@ -208,7 +244,10 @@ class boonton_55318:
         self.trig_settings['trig_holdoff'] = c_trig_holdoff.value
 
     def set_trig_source(self, source):
-        c_trig_source = c_int(source.value)
+        if isinstance(source, boonton_trigger_source):
+            c_trig_source = c_int(source.value)
+        else:
+            c_trig_source = c_int(source)
         usb_error = self._lib.Btn55xxx_SetTrigSource(self._handle, c_trig_source)
         return usb_error
 
@@ -218,8 +257,8 @@ class boonton_55318:
         self.trig_settings['trig_source'] = c_trig_source.value
 
     def set_average(self, average):
-        c_average = c_int(average.value)
-        usb_error = self._lib.Btn55xxx_SetAverage(self._handle, c_average)
+        c_average = c_int(average)
+        usb_error = self._lib.Btn55xxx_SetAverage(self._handle, CHANNEL_STRING, c_average)
         return usb_error
 
     def get_average(self):
@@ -228,8 +267,11 @@ class boonton_55318:
         self.trig_settings['average'] = c_average.value
 
     def set_bandwidth(self, bandwidth):
-        c_bandwidth = c_float(bandwidth.value)
-        usb_error = self._lib.Btn55xxx_SetBandwidth(self._handle, c_bandwidth)
+        if isinstance(bandwidth, boonton_bandwidth):
+            c_bandwidth = c_int(bandwidth.value)
+        else:
+            c_bandwidth = c_int(bandwidth)
+        usb_error = self._lib.Btn55xxx_SetBandwidth(self._handle, CHANNEL_STRING, c_bandwidth)
         return usb_error
 
     def get_bandwidth(self):
@@ -250,11 +292,15 @@ class boonton_55318:
         self.trig_settings['units'] = c_unit.value
 
     def set_frequency(self, frequency):
-        c_frequency = c_float(frequency)
-        usb_error = self._lib.Btn55xxx_SetFrequency(self._handle, CHANNEL_STRING, c_frequency)
-        if usb_error:
-                self.status = boonton_helpers.get_error_msg(usb_error)
-                print(f"ERROR: reset {self.serial} -> {self.status}")
+        try:
+            c_frequency = c_float(frequency)
+            usb_error = self._lib.Btn55xxx_SetFrequency(self._handle, CHANNEL_STRING, c_frequency)
+            if usb_error:
+                    self.status = boonton_helpers.get_error_msg(usb_error)
+                    print(f"ERROR: reset {self.serial} -> {self.status}")
+            return usb_error
+        except Exception as ex:
+            return str(ex)
 
     def get_frequency(self):
         c_frequency = c_float()
@@ -280,6 +326,8 @@ class boonton_55318:
         "Arm trigger and start continuous measurements"
         usb_error = self.send_scpi_command("TRIG:CDF:CAPT OFF")
 
+        if usb_error:
+            return str(usb_error)
         self.set_trig_mode(boonton_trigger_mode.normal, scpi=True)
 
         self.set_continuous_measurement(True)
@@ -305,15 +353,16 @@ class boonton_55318:
 
         actual_size = c_int()
         trace = c_float * TRACE_LENGTH
-        trace = trace(*list([DEFAULT_POWER for i in range(TRACE_LENGTH)]))
+        trace = trace(*list([self.power_min for i in range(TRACE_LENGTH)]))
 
         usb_error = self._lib.Btn55xxx_FetchWaveform(self._handle, CHANNEL_STRING, 
                                         TRACE_LENGTH, trace, byref(actual_size))
 
         i = 0
+        print(f'trace length = {len(trace)}')
         for raw in trace:
-            print(f'raw data[{i}] = {raw}')
-            print(type(raw))
+            # print(f'raw data[{i}] = {raw}')
+            # print(type(raw))
             i +=1
         # if usb_error:
         print(f'ERROR: {usb_error} : trace read {self.serial} {actual_size.value}')
@@ -321,8 +370,10 @@ class boonton_55318:
         #Handle trace data
         #Default data is float or string???
         for val in trace:
-            if math.isnan(val) or val < DEFAULT_POWER:
-                val = DEFAULT_POWER
+            if math.isnan(val) or val < self.power_min:
+                val = self.power_min
+            else:
+                print(val)
             self.trace.append(val)
             # print(type(val))
 
@@ -337,7 +388,7 @@ class boonton_55318:
 
         actual_size = c_int()
         trace = c_float * TRACE_LENGTH
-        trace = trace(*list([DEFAULT_POWER for i in range(TRACE_LENGTH)]))
+        trace = trace(*list([self.power_min for i in range(TRACE_LENGTH)]))
 
         usb_error = self._lib.Btn55xxx_FetchWaveform(self._handle, CHANNEL_STRING, 
                                         TRACE_LENGTH, trace, byref(actual_size))
@@ -348,8 +399,10 @@ class boonton_55318:
         #Handle trace data
         #Default data is float or string???
         for val in trace:
-            if math.isnan(val) or val < DEFAULT_POWER:
-                val = DEFAULT_POWER
+            if math.isnan(val) or val < self.power_min:
+                val = self.power_min
+            else:
+                print(val)
 
         #check for stale data
         #TODO
@@ -357,9 +410,22 @@ class boonton_55318:
         self.trace = trace
 
     def save_trace(self):
-        "Call read_trace and save results"
-        self.trace_read()
-        
+        jo = {
+            "header" : {
+                "type" : "trace",
+                "serial" : self.serial 
+            },
+            "payload" :{
+                "data" : self.trace
+            }
+        }
+        # for x in range(10):
+            # print(f'sample = {self.trace[x]}')
+        response = json.dumps(jo, indent=2)
+        msg = publish_message('data.save.trace', response)
+        # print(f'save trace -> {response}')
+        self.publisher.messages.put(msg)
+
     '''GATE FUNCTIONS'''
     def calc_gates(self):
         pulse_count = self.config['pulse_count']
@@ -424,11 +490,31 @@ class boonton_55318:
             gate_mean = sum(self.trace[x_index1:x_index2]) / (x_index2 - x_index1)
 
             if not self.trace_fresh:
-                gate_mean = -30.0
+                gate_mean = self.power_min
 
             return gate_mean
 
-            
+    def load_settings_from_dict(self, dict_object):
+        response = object()
+        resp = self.set_frequency(dict_object['rf_frequency'])
+        response.rf_frequency = resp
+        
+        resp = self.set_trig_slope(dict_object['trigger_slope'])
+        response.trigger_slope = resp
+
+        resp = self.set_trig_holdoff(dict_object['trigger_holdoff'])
+        response.trigger_holdoff = resp
+
+        resp = self.set_trig_delay(dict_object['trace_start'])
+        response.trigger_delay = resp
+
+        resp = self.set_timespan(dict_object['trace_stop'])
+        response.timespan = resp
+
+        self.power_min = dict_object['trace_min']
+        self.power_max = dict_object['trace_max']
+
+        self.status = boonton_status.initialized
 
 
     # def timer_tick(self):

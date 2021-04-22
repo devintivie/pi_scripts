@@ -1,7 +1,7 @@
 import pika
 import sys
 import functools
-print(sys.version_info.major)
+# print(sys.version_info.major)
 if sys.version_info.major == 3:
     import queue
 else:

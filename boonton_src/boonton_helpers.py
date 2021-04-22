@@ -14,6 +14,30 @@ class boonton_trigger_mode(enum.Enum):
     auto_level = 3
     free_run = 4
 
+class boonton_trigger_source(enum.Enum):
+    channel1 = 0
+    channel2 = 1
+    external = 2
+    channel3 = 3
+    channel4 = 4
+    channel5 = 5
+    channel6 = 6
+    channel7 = 7
+    channel8 = 8
+    channel9 = 9
+    channel10 = 10
+    channel11 = 11
+    channel12 = 12
+    channel13 = 13
+    channel14 = 14
+    channel15 = 15
+    channel16 = 16
+    independent = 17
+
+class boonton_bandwidth(enum.Enum):
+    high = 0
+    low = 1
+
 class boonton_units(enum.Enum):
     dBm = 0
     watts = 1
@@ -21,6 +45,10 @@ class boonton_units(enum.Enum):
     dBV = 3
     dBmV = 4
     dBuV = 5
+
+class boonton_trigger_slope(enum.Enum):
+    negative = 0
+    positive = 1
 
 class boonton_error_code(enum.Enum):
     io_general = -2147204588

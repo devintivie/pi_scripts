@@ -1,0 +1,24 @@
+{
+    "boonton_config": {
+        "rf_frequency" : 500e6,
+        "trigger_slope" : 1,
+        "trigger_holdoff" : 0,
+        "trace_start" : 0e-6,
+        "trace_stop" : 50e-6,
+        "trace_max" : 20.0,
+        "trace_min" : -30.0,
+        "delay" : 0.5e-6,
+        "pw" : 2.0e-6,
+        "pri" : 4.0e-6,
+        "pulse_count" : 8,
+        "pm_freqs" : [100e6, 100e6, 100e6, 100e6, 100e6, 100e6, 100e6, 100e6],
+        "10161" : {
+            "gates":[
+                {
+                "start" : 0.5e-6,
+                "stop" : 1.0e-6
+                }
+            ]
+        }
+    }
+}

@@ -1,7 +1,7 @@
 import pika
 import sys
 import functools
-print(sys.version_info.major)
+# print(sys.version_info.major)
 if sys.version_info.major == 3:
     import queue
 else:
@@ -17,7 +17,7 @@ class mq_publisher(threading.Thread):
         # self.name = name
 
         self.exchange_name = "rtsh_topics"
-        self.routing_key='master.control.response'
+        # self.routing_key='master.control.response'
         self.messages = queue.Queue()
         self._stopping = False
         self.queue_name = ''
@@ -100,7 +100,7 @@ class mq_publisher(threading.Thread):
     def schedule_next_message(self):
         try:
             msg = self.messages.get(True, 0.01)
-            self._channel.basic_publish(exchange=self.exchange_name, routing_key=self.routing_key, body=str(msg))
+            self._channel.basic_publish(exchange=self.exchange_name, routing_key=msg.routing_key, body=str(msg.message))
         except queue.Empty:
             pass
         except pika.exceptions.ChannelWrongStateError as ex:

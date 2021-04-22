@@ -1,5 +1,6 @@
 
 import sys
+import os
 sys.path.append('../boonton_src')
 sys.path.append('../rabbitmq_dev')
 
@@ -16,7 +17,7 @@ class pi_command_processor(object):
     def __init__(self, config, publisher, boonton_control):
         self.publisher = publisher
         self.name = config['name']
-        self.config = config['boonton_parameters']
+        # self.config = config['boonton_parameters']
 
         self.boonton_control = boonton_control
 
@@ -71,7 +72,8 @@ class pi_command_processor(object):
 
     def publish(self, response_object):
         response_json = json.dumps(response_object, indent=2)
-        self.publisher.messages.put(response_json)
+        msg = publish_message('master.control.response', response_json)
+        self.publisher.messages.put(msg)
 
     def process_command(self, data):
         command = data.command
@@ -115,7 +117,7 @@ class pi_command_processor(object):
         # serial = payload.serial
         # print(f'boonton load config serial = {serial}')
         # print(f'filename = {payload.filename}')
-        response = self.sensor_load_from_config(payload['serial'], payload['filename'])
+        response = self.sensor_load_from_config_file(payload['serial'], payload['filename'])
         return response.__dict__
 
     def start_poll_response(self, payload):
@@ -170,16 +172,24 @@ class pi_command_processor(object):
         print(status)
         return response
 
-    def sensor_load_from_config(self, serial, filename):
+    def sensor_load_from_config_file(self, serial, filename):
         print(f'sensor load serial = {serial}')
         print(f'sensor load filename = {filename}')
-        response = command_response()
-        freq = self.config['rf_frequency']
-        print(f'sensor load rf freq {freq}')
-        ans = self.boonton_control.sensors[serial].set_frequency(freq)
-        print(f'sensor load set freq resp = {ans}')
+        try:
+            with open(filename) as f:
+                config = json.load(f)['config']
+        except FileNotFoundError:
+            curr_dir = os.path.dirname(__file__)
+            with open(curr_dir + '/' +filename) as f:
+                config = json.load(f)['config']
+
+
+        response = self.boonton_control.sensors[serial].load_settings_from_dict(config)
+
+        # freq = self.config['rf_frequency']
+        # ans = self.boonton_control.sensors[serial].set_frequency(freq)
         # response.status = status
-        response.sensors = self.sensors
+        # response.sensors = self.sensors
         # print(status)
         return response
 
@@ -194,14 +204,16 @@ class pi_command_processor(object):
 
     def start_poll_power_meters(self):
         response = command_response()
+        self.boonton_control.start_polling_power_meters()
         status = "started"
         response.status = status
         self.status = status
-        print(status)
+        print(response.status)
         return response
 
     def stop_poll_power_meters(self):
         response = command_response()
+        self.boonton_control.stop_polling_power_meters()
         status = "stopped"
         response.status = status
         self.status = status

@@ -60,7 +60,7 @@ con_parameters = pika.ConnectionParameters(
 
 print('pi parameters set')
 pub = mq_publisher(pub_parameters)
-boonton_control = boonton_manager(config, pub)
+boonton_control = boonton_manager(pub)
 processor = pi_command_processor(config, pub, boonton_control)
 file_routing = list(config['routing_keys'])
 con = mq_consumer(con_parameters, file_routing, processor)

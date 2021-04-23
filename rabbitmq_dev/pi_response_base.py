@@ -18,12 +18,10 @@ class publish_message(object):
         self.routing_key = routing_key
         self.message = message
     
-
 class data_message(object):
     def __init__(self, serial, data):
         self.serial = serial
         
-
 # class rabbitmq_response(object):
 #     def __init__(self): # name, 
 #         self.status = 'idle'

@@ -25,8 +25,6 @@ class none_publisher(threading.Thread):
             pass 
 
         threading.Timer(0.1, self.schedule_next_message).start()
-        # self.schedule_next_message()
-
 
     def stop(self):
         self._stopping = True

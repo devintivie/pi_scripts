@@ -1,6 +1,7 @@
 import os
 import sys
 
+from datetime import datetime
 from ctypes import *
 from boonton_helpers import *
 import boonton_helpers
@@ -16,11 +17,12 @@ def to_bytes(string):
     return bytes(string, encoding = 'utf-8')
 
 class boonton_55318:
-    def __init__(self, lib, serial_num, config, publisher):
+    def __init__(self, lib, serial_num, publisher):
         self._lib = lib
         self.serial = serial_num
         self._handle = None
-        self.config = config
+        # self.config = config
+        self.config = None
         self.trig_settings = dict()
         self.trace = list()
         self.gates= list()
@@ -76,6 +78,7 @@ class boonton_55318:
         self.set_trig_source(boonton_trigger_source.external)
         self.set_trig_slope(boonton_trigger_slope.positive)
         self.set_trig_delay(0)
+        self.set_trig_position(0)
         self.set_timespan(50e-6)
         self.set_average(1)
         self.set_bandwidth(boonton_bandwidth.high)
@@ -96,6 +99,7 @@ class boonton_55318:
     #     self.update_trig_settings()
 
     def update_trig_settings(self):
+        print('update_trig_settings go')
         self.get_timebase()
         self.get_timespan()
         self.get_trig_level()
@@ -210,7 +214,7 @@ class boonton_55318:
 
     def get_trig_slope(self):
         c_trig_slope = c_int()
-        self._lib.Btn55xxx_GetTrigMSlope(self._handle, byref(c_trig_slope))
+        self._lib.Btn55xxx_GetTrigSlope(self._handle, byref(c_trig_slope))
         self.trig_settings['trig_slope'] = c_trig_slope.value
 
     def set_trig_position(self, position):
@@ -220,11 +224,11 @@ class boonton_55318:
 
     def get_trig_position(self):
         c_trig_position = c_float()
-        self._lib.Btn55xxx_GetTrigVernier(self._handle, byref(c_trig_position))
+        print(self._lib.Btn55xxx_GetTrigVernier(self._handle, byref(c_trig_position)))
         self.trig_settings['trig_position'] = c_trig_position.value
 
     def set_trig_delay(self, delay):
-        c_trig_delay = c_int(delay)
+        c_trig_delay = c_float(delay)
         usb_error = self._lib.Btn55xxx_SetTrigDelay(self._handle, c_trig_delay)
         return usb_error
 
@@ -350,7 +354,7 @@ class boonton_55318:
         print('clear trace')
         self.trace.clear()
         self.trace_fresh = True # for gate read
-
+        self.trace_timestamp = datetime.now()
         actual_size = c_int()
         trace = c_float * TRACE_LENGTH
         trace = trace(*list([self.power_min for i in range(TRACE_LENGTH)]))
@@ -358,14 +362,14 @@ class boonton_55318:
         usb_error = self._lib.Btn55xxx_FetchWaveform(self._handle, CHANNEL_STRING, 
                                         TRACE_LENGTH, trace, byref(actual_size))
 
-        i = 0
-        print(f'trace length = {len(trace)}')
-        for raw in trace:
+        # i = 0
+        # print(f'trace length = {len(trace)}')
+        # for raw in trace:
             # print(f'raw data[{i}] = {raw}')
             # print(type(raw))
-            i +=1
-        # if usb_error:
-        print(f'ERROR: {usb_error} : trace read {self.serial} {actual_size.value}')
+            # i +=1
+        if usb_error:
+            print(f'ERROR: {usb_error} : trace read {self.serial} {actual_size.value}')
         
         #Handle trace data
         #Default data is float or string???
@@ -409,22 +413,7 @@ class boonton_55318:
         # this_sum = sum(trace)
         self.trace = trace
 
-    def save_trace(self):
-        jo = {
-            "header" : {
-                "type" : "trace",
-                "serial" : self.serial 
-            },
-            "payload" :{
-                "data" : self.trace
-            }
-        }
-        # for x in range(10):
-            # print(f'sample = {self.trace[x]}')
-        response = json.dumps(jo, indent=2)
-        msg = publish_message('data.save.trace', response)
-        # print(f'save trace -> {response}')
-        self.publisher.messages.put(msg)
+    
 
     '''GATE FUNCTIONS'''
     def calc_gates(self):
@@ -449,17 +438,19 @@ class boonton_55318:
         gates = self.calc_gates()
         self.set_gates(gates)
 
-    def get_gates_from_config_array(self):
-        config_gates = self.config[self.serial]['gates']
+    def get_gates_from_config_array(self, config_array):
         gates = list()
-        for gate in config_gates:
+        for gate in config_array:
+            print(gate)
+            print(type(gate))
             new_gate = collect_gate(gate['start'], gate['stop'])
             gates.append(new_gate)
 
         return gates
 
-    def set_gates_from_array(self):
-        gates = self.get_gates_from_config_array()
+    def set_gates_from_array(self, config_array):
+        gates = self.get_gates_from_config_array(config_array)
+        print('setting gates')
         self.set_gates(gates)
 
     def get_gates(self):
@@ -471,9 +462,10 @@ class boonton_55318:
         xmin = self.trig_settings['trig_position']
         xmax = self.trig_settings['timespan'] - xmin
 
+        pulse_means = list()
         for gate_index in range(len(self.gates)):
             gate = self.gates[gate_index]
-            freq = self.config['pm_freqs'][gate_index]
+            # freq = self.config['pm_freqs'][gate_index]
 
             gate_start = gate.start
             gate_stop = gate.stop
@@ -487,34 +479,88 @@ class boonton_55318:
             x_index1 = int(round( (gate_start - xmin) / (xmax - xmin) * 500 ) )
             x_index2 = int(round( (gate_stop - xmin) / (xmax - xmin) * 500 ) + 1)
 
-            gate_mean = sum(self.trace[x_index1:x_index2]) / (x_index2 - x_index1)
+            gate_mean = sum(self.trace[x_index1:x_index2]) / (x_index2 - x_index1) + 3
 
             if not self.trace_fresh:
                 gate_mean = self.power_min
 
-            return gate_mean
+            pulse_means.append(gate_mean)
+        return pulse_means
+
+    def save_pulse_data(self):
+        pulse_values = self.get_pulse_data()
+
+        for x in pulse_values:
+            print(x)
+        print()
+        jo = {
+            "header" : {
+                "type" : "pulse_data",
+                "serial" : self.serial 
+            },
+            "payload" : {
+                "timestamp" : self.trace_timestamp.isoformat(),
+                "data" : pulse_values
+            }
+        }
+        response = json.dumps(jo, indent=2)
+        msg = publish_message('data.save.pulse_data', response)
+        self.publisher.messages.put(msg)
+
+
+    def save_trace(self):
+        jo = {
+            "header" : {
+                "type" : "trace",
+                "serial" : self.serial 
+            },
+            "payload" :{
+                "timestamp" : self.trace_timestamp.isoformat(),
+                "data" : self.trace
+            }
+        }
+        response = json.dumps(jo, indent=2)
+        msg = publish_message('data.save.trace', response)
+        self.publisher.messages.put(msg)
 
     def load_settings_from_dict(self, dict_object):
-        response = object()
+        print('entered load settings from dict')
+        self.config = dict_object
+        response = command_response()
+        print('set freq from config')
         resp = self.set_frequency(dict_object['rf_frequency'])
         response.rf_frequency = resp
         
+        print('set trigger slope from config')
         resp = self.set_trig_slope(dict_object['trigger_slope'])
         response.trigger_slope = resp
 
+        print('set trigger holdoff from config')
         resp = self.set_trig_holdoff(dict_object['trigger_holdoff'])
         response.trigger_holdoff = resp
 
+        print('set trace start from config')
         resp = self.set_trig_delay(dict_object['trace_start'])
         response.trigger_delay = resp
 
+        print('set trace stop from config')
         resp = self.set_timespan(dict_object['trace_stop'])
         response.timespan = resp
 
+        print('idk')
         self.power_min = dict_object['trace_min']
         self.power_max = dict_object['trace_max']
 
+        print(self.serial)
+        tmp = dict_object[self.serial]
+        print(tmp)
+        tmp = dict_object[self.serial]['gates']
+        print(tmp)
+        self.set_gates_from_array(dict_object[self.serial]['gates'])
         self.status = boonton_status.initialized
+
+        self.update_trig_settings()
+        return response
 
 
     # def timer_tick(self):

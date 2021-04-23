@@ -10,14 +10,14 @@ from boonton_55318 import *
 from boonton_helpers import *
 
 class boonton_manager:
-    def __init__(self, config, mq_publisher):
+    def __init__(self, mq_publisher):
         curr_dir = os.path.dirname(__file__)
         print(curr_dir)
         self.lib = cdll.LoadLibrary('../boonton_src/libBoonton55.so.1.0.4')
         # self.lib = None
         print(self.lib)
         self.sensors = dict()
-        self.config = config
+        # self.config = config
         self.publisher = mq_publisher
         # self.startup()startup
         self.polling = False
@@ -47,7 +47,7 @@ class boonton_manager:
             if not serial in self.sensors:
                 print(f'adding <{serial}>')
                 if serial != '':
-                    self.sensors[serial] = boonton_55318(self.lib, serial, self.config, self.publisher)
+                    self.sensors[serial] = boonton_55318(self.lib, serial, self.publisher)
             else:
                 print(f'<{serial}> is already active')
             
@@ -107,6 +107,7 @@ class boonton_manager:
                     x.trace_read()
                     print('poll power meters save trace start')
                     x.save_trace()
+                    x.save_pulse_data()
             # else:
             time.sleep(2)
 
@@ -124,7 +125,7 @@ if __name__ == "__main__":
     config = None
     publisher = none_publisher()
     publisher.start()
-    boonton_control = boonton_manager(config, publisher)
+    boonton_control = boonton_manager(publisher)
     boonton_control.startup()
 
     boonton_control.trace_read('10208')

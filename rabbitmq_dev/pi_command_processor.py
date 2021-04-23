@@ -177,13 +177,15 @@ class pi_command_processor(object):
         print(f'sensor load filename = {filename}')
         try:
             with open(filename) as f:
-                config = json.load(f)['config']
-        except FileNotFoundError:
+                print(f'success {filename}')
+                config = json.load(f)['boonton_config']
+        except FileNotFoundError as ex:
+            print(f'sensor load from config file = {ex}')
             curr_dir = os.path.dirname(__file__)
             with open(curr_dir + '/' +filename) as f:
-                config = json.load(f)['config']
+                config = json.load(f)['boonton_config']
 
-
+        print('file load success')
         response = self.boonton_control.sensors[serial].load_settings_from_dict(config)
 
         # freq = self.config['rf_frequency']
@@ -196,8 +198,8 @@ class pi_command_processor(object):
     def update_sensor_list(self):
         sensors = list()
         for sensor in self.boonton_control.sensors.values():
-            sensor.get_frequency()
-            print(sensor.trig_settings['frequency'])
+            sensor.get_trig_position()
+            print(sensor.trig_settings['trig_position'])
             sensors.append(sensor_info(sensor).__dict__)
         else:
             self.sensors = sensors

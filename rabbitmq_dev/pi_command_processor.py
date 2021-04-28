@@ -69,7 +69,6 @@ class pi_command_processor(object):
         }
         self.publish(o)
 
-
     def publish(self, response_object):
         response_json = json.dumps(response_object, indent=2)
         msg = publish_message('master.control.response', response_json)

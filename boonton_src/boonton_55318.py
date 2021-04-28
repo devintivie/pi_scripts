@@ -34,6 +34,7 @@ class boonton_55318:
         self.power_min = DEFAULT_POWER
         self.load_default_settings()
         self.status = boonton_status.not_initialized
+        self.error_messages = list()
 
     @property
     def is_initialized(self):
@@ -431,6 +432,19 @@ class boonton_55318:
 
         return gates
 
+    def check_that_gates_are_valid(self, test_gates):
+        length = len(test_gates)
+        valid = True
+        for i in range(length):
+            if test_gates[i].start < self.trig_settings['trig_position']:
+                self.error_messages.append(f'WARNING Gate {i+1} starts before trace starts')
+            if test_gates[i].stop > self.trig_settings['trig_position'] + self.trig_settings['timespan']:
+                self.error_messages.append(f'WARNING Gate {i+1} stops after trace stops')
+            if i != 0:
+                if test_gates[i].start < test_gates[i-1].stop:
+                    self.error_messages.append(f'WARNING Gate {i+1} starts before Gate{i} ends')
+        return valid
+
     def set_gates(self, gates):
         self.gates = gates
 
@@ -441,17 +455,22 @@ class boonton_55318:
     def get_gates_from_config_array(self, config_array):
         gates = list()
         for gate in config_array:
-            print(gate)
-            print(type(gate))
+            # print(gate)
+            # print(type(gate))
             new_gate = collect_gate(gate['start'], gate['stop'])
             gates.append(new_gate)
+
+        
 
         return gates
 
     def set_gates_from_array(self, config_array):
         gates = self.get_gates_from_config_array(config_array)
+        print('gates loaded')
+        valid = self.check_that_gates_are_valid(gates)
         print('setting gates')
-        self.set_gates(gates)
+        if valid:
+            self.set_gates(gates)
 
     def get_gates(self):
         for i in range(len(self.gates)):
@@ -478,8 +497,7 @@ class boonton_55318:
 
             x_index1 = int(round( (gate_start - xmin) / (xmax - xmin) * 500 ) )
             x_index2 = int(round( (gate_stop - xmin) / (xmax - xmin) * 500 ) + 1)
-
-            gate_mean = sum(self.trace[x_index1:x_index2]) / (x_index2 - x_index1) + 3
+            gate_mean = sum(self.trace[x_index1:x_index2]) / (x_index2 - x_index1)
 
             if not self.trace_fresh:
                 gate_mean = self.power_min
@@ -491,7 +509,7 @@ class boonton_55318:
         pulse_values = self.get_pulse_data()
 
         for x in pulse_values:
-            print(x)
+            print(f'pulse value {x}')
         print()
         jo = {
             "header" : {
@@ -503,6 +521,7 @@ class boonton_55318:
                 "data" : pulse_values
             }
         }
+        
         response = json.dumps(jo, indent=2)
         msg = publish_message('data.save.pulse_data', response)
         self.publisher.messages.put(msg)
@@ -547,19 +566,23 @@ class boonton_55318:
         resp = self.set_timespan(dict_object['trace_stop'])
         response.timespan = resp
 
+        self.update_trig_settings()
+
         print('idk')
         self.power_min = dict_object['trace_min']
         self.power_max = dict_object['trace_max']
 
-        print(self.serial)
-        tmp = dict_object[self.serial]
-        print(tmp)
-        tmp = dict_object[self.serial]['gates']
-        print(tmp)
+        # print(self.serial)
+        # tmp = dict_object[self.serial]
+        # print(tmp)
+        # tmp = dict_object[self.serial]['gates']
+        # print(tmp)
         self.set_gates_from_array(dict_object[self.serial]['gates'])
         self.status = boonton_status.initialized
 
-        self.update_trig_settings()
+       
+        response.status = self.status.value
+        response.errors = self.error_messages
         return response
 
 

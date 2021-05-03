@@ -23,6 +23,7 @@ class boonton_55318:
         self._handle = None
         # self.config = config
         self.config = None
+        self.config_file = 'default'
         self.trig_settings = dict()
         self.trace = list()
         self.gates= list()
@@ -52,7 +53,7 @@ class boonton_55318:
                     print(f'ERROR: {self.status}')
                 else:
                     self._handle = c_handle
-                    self.status = boonton_status.initialized
+                    self.status = boonton_status.initialized.value
                     # print(f'self._handle = {self._handle.value}')
             except Exception as ex :
                 print(f'init exception {ex}')
@@ -542,6 +543,24 @@ class boonton_55318:
         msg = publish_message('data.save.trace', response)
         self.publisher.messages.put(msg)
 
+    def load_settings_from_file(self, filename):
+        print(f'sensor load serial = {self.serial}')
+        print(f'sensor load filename = {filename}')
+        
+        try:
+            with open(filename) as f:
+                print(f'success {filename}')
+                config = json.load(f)['boonton_config']
+        except FileNotFoundError as ex:
+            print(f'sensor load from config file = {ex}')
+            curr_dir = os.path.dirname(__file__)
+            with open(curr_dir + '/' +filename) as f:
+                config = json.load(f)['boonton_config']
+
+        print('file load success')
+        self.config_file = filename
+        return self.load_settings_from_dict(config)
+
     def load_settings_from_dict(self, dict_object):
         print('entered load settings from dict')
         self.config = dict_object
@@ -578,7 +597,7 @@ class boonton_55318:
         # tmp = dict_object[self.serial]['gates']
         # print(tmp)
         self.set_gates_from_array(dict_object[self.serial]['gates'])
-        self.status = boonton_status.initialized
+        self.status = boonton_status.initialized.value
 
        
         response.status = self.status.value

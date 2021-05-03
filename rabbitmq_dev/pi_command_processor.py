@@ -172,26 +172,22 @@ class pi_command_processor(object):
         return response
 
     def sensor_load_from_config_file(self, serial, filename):
-        print(f'sensor load serial = {serial}')
-        print(f'sensor load filename = {filename}')
-        try:
-            with open(filename) as f:
-                print(f'success {filename}')
-                config = json.load(f)['boonton_config']
-        except FileNotFoundError as ex:
-            print(f'sensor load from config file = {ex}')
-            curr_dir = os.path.dirname(__file__)
-            with open(curr_dir + '/' +filename) as f:
-                config = json.load(f)['boonton_config']
+        # print(f'sensor load serial = {serial}')
+        # print(f'sensor load filename = {filename}')
+        # try:
+        #     with open(filename) as f:
+        #         print(f'success {filename}')
+        #         config = json.load(f)['boonton_config']
+        # except FileNotFoundError as ex:
+        #     print(f'sensor load from config file = {ex}')
+        #     curr_dir = os.path.dirname(__file__)
+        #     with open(curr_dir + '/' +filename) as f:
+        #         config = json.load(f)['boonton_config']
 
-        print('file load success')
-        response = self.boonton_control.sensors[serial].load_settings_from_dict(config)
-
-        # freq = self.config['rf_frequency']
-        # ans = self.boonton_control.sensors[serial].set_frequency(freq)
-        # response.status = status
-        # response.sensors = self.sensors
-        # print(status)
+        # print('file load success')
+        # response = self.boonton_control.sensors[serial].load_settings_from_dict(config)
+        
+        response = self.boonton_control.sensors[serial].load_settings_from_file(filename)
         return response
 
     def update_sensor_list(self):

@@ -44,3 +44,4 @@ class sensor_info(object):
         # print(f'sensor info -> {sensor._handle}')
         self.serial_number = sensor.serial
         self.status = str(sensor.status)
+        self.config_file = sensor.config_file

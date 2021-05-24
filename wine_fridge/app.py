@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, jsonify
 import flask
 import datetime
 # from simple_control import simple_controller
@@ -14,10 +14,10 @@ sensor = adafruit_ahtx0.AHTx0(board.I2C())
 @app.route("/")
 def hello():
     now = datetime.now()
-    temp = sensor.temperature * 9 / 5 + 32
-    temperature_string = f'{temp:.2f}'
-    humid = sensor.relative_humidity    
-    humid_string = f'{humid:.2f}'
+    temperature_string = get_temperature()
+    temperature_string = f'{temperature_string} {chr(176)}F'
+    humid_string = get_humidity()
+    humid_string = f'{humid_string} %'
     timeString = now.strftime("%Y-%m-%d %H:%M:%S:%f")
     templateData = {
         'title' : 'Wine Fridge',
@@ -27,7 +27,35 @@ def hello():
     }
     return render_template('index.html', **templateData)
 
- 
+@app.route('/api/v1/readings/temperature', methods=['GET'])
+def api_get_temp():
+    temperature_string = get_temperature()
+    temp_o = {'temperature' : temperature_string}
+    return jsonify(temp_o)
+
+@app.route('/api/v1/readings/humidity', methods=['GET'])
+def api_get_humidity():
+    humid = get_humidity()
+    humid_o = {'humidity' : humid}
+    return jsonify(humid_o)
+
+@app.route('/api/v1/readings/all', methods=['GET'])
+def api_get_all():
+    temperature = get_temperature()
+    humid = get_humidity()
+    all_o = {
+        'humidity' : humid,
+        'temperature' : temperature
+        }
+    return jsonify(all_o)
+
+def get_humidity():
+    humid = sensor.relative_humidity    
+    return f'{humid:.2f}'
+
+def get_temperature():
+    temp = sensor.temperature * 9 / 5 + 32
+    return f'{temp:.2f}'
    
 if __name__ == "__main__":
    app.run(host='0.0.0.0', port=80, debug=True)

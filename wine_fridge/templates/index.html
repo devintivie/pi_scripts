@@ -2,29 +2,72 @@
    <head>
       <title>GPIO Control</title>
 	  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-      <link rel="stylesheet" href='../static/style.css'/> 
+      <link rel="stylesheet" href='/static/style.css'/> 
 	  <!-- <meta http-equiv="refresh" content="5" > -->
 	  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-   </head>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+    </head>
    <body class="test">
 	   <div class="card">
 		<div class="card-body">
 			<h5 class="card-title">Wine Fridge</h5>
-			<p class="card-text">Humidity {{humidity}}</p>
-			<p class="card-text">Temperature {{temperature}}</p>
+			<p class="card-text" id="hum_card" ></p>
+            <!-- <h2 id="hum"></h2> -->
+			<p class="card-text" id="temp_card"></p>
 		</div>
-		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js" integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous"></script>
-		<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script> -->
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js" integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous">
+        </script>
 
 		<script>
-			$.ajax({
-				url: "/",
-				type:"get",
-				data:{jsdata:text},
-				success: function(response){
-					$
-				}
-			})
+            // $(document).ready(function() 
+            // {
+            // setInterval(getData, 1000);
+
+            function showTemp(number)
+            {
+                var fahr = number * 9 / 5 +32;
+                var tmpFahr = fahr.toFixed(2);
+
+                return " Temperature " + tmpFahr + " \u00B0F";
+            }
+
+            function showHumid(number)
+            {
+                var tmp = number.toFixed(2);
+                return "Humidity " + tmp + " %RH";
+            }
+
+            function getData(){
+                setTimeout(function()
+                {
+                    $.ajax({
+                        type:"GET",
+                        url:"/api/v1/readings/all",
+                        dataType: "json",
+                        success: function(response)
+                        {
+                            console.log(typeof response.humidity)
+                            $('#hum_card').html(showHumid(response.humidity))//.format(response.humidity))
+                            $('#temp_card').html(showTemp(response.temperature))//.format(response.temp))
+                            // console.log(response)
+                            // var idk = document.getElementById('hum');
+                            // idk.html = "idk yes";
+                            // $('#hum').empty();
+                            // $('#hum').html(response.humidity);
+                            // alert('success:', "idkalqw");
+                            // console.log('xcxcxcxxc');
+                        },
+                        // error: function(jqxhr, status, exception) {
+                        //     alert('Exception:', exception);
+                        // },
+                        complete: getData
+                    });
+                }, 1000)
+            }
+            getData();
+            // });​
+		
 		</script>
 		
 	</body>

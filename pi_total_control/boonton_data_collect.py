@@ -14,7 +14,6 @@ from none_publisher import *
 from pi_command_processor import pi_command_processor
 from boonton_control_cmd import *
 
-
 print('pi rabbit control starting')
 if len(sys.argv) > 1:
     config_file = sys.argv[1]

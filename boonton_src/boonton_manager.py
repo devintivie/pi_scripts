@@ -9,6 +9,8 @@ from ctypes import *
 from boonton_55318 import *
 from boonton_helpers import *
 
+
+
 class boonton_manager:
     def __init__(self, mq_publisher):
         curr_dir = os.path.dirname(__file__)
@@ -104,6 +106,7 @@ class boonton_manager:
         while True:
             if self.polling:
                 for x in self.sensors.values():
+                    
                     x.trace_read()
                     print('poll power meters save trace start')
                     x.save_trace()

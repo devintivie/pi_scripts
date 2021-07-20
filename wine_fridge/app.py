@@ -29,6 +29,7 @@ def hello():
 
 @app.route('/api/v1/readings/temperature', methods=['GET'])
 def api_get_temp():
+    print
     temperature_string = get_temperature()
     temp_o = {'temperature' : temperature_string}
     return jsonify(temp_o)
@@ -41,21 +42,27 @@ def api_get_humidity():
 
 @app.route('/api/v1/readings/all', methods=['GET'])
 def api_get_all():
+    # print('api get all data')
     temperature = get_temperature()
     humid = get_humidity()
     all_o = {
         'humidity' : humid,
         'temperature' : temperature
         }
-    return jsonify(all_o)
+    data_return = jsonify(all_o)
+    # print(f'data_return = {data_return}')
+    return data_return
 
 def get_humidity():
-    humid = sensor.relative_humidity    
-    return f'{humid:.2f}'
+    humid = sensor.relative_humidity  
+    # print(type(humid))  
+    # return f'{humid:.2f}'
+    return humid
 
 def get_temperature():
-    temp = sensor.temperature * 9 / 5 + 32
-    return f'{temp:.2f}'
+    temp = sensor.temperature# * 9 / 5 + 32
+    # return f'{temp:.2f}'
+    return temp
    
 if __name__ == "__main__":
    app.run(host='0.0.0.0', port=80, debug=True)

@@ -5,6 +5,8 @@ from datetime import datetime
 from ctypes import *
 from boonton_helpers import *
 import boonton_helpers
+
+sys.path.append('../rabbitmq_dev')
 from pi_response_base import *
 import math
 import json

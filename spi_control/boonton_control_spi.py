@@ -11,6 +11,7 @@ TRIG_STATE =  0x2
 SENSOR_RESET = 0x3
 SENSOR_CONTROL = 0x4
 SENSOR_TIME_LO = 0x5
+SAMPLE_TYPE = 0x5
 SENSOR_TIME_HI = 0x6
 PULSE_SELECT = 0x7
 
@@ -31,68 +32,87 @@ class boonton_control_spi(fpga_spi):
         super().__init__()
 
     def get_sensor_status(self, sensor):
-        sensor = int(sensor)
-        
-        check_sensor_number(sensor)
-
+        err = check_sensor_number(sensor)
+        if err:
+            return err
         address = (int(sensor) - 1 ) * SENSOR_REG_JUMP + SENSOR_STATUS
         data = self.read_register(address )
         return data
 
     def set_trigger_select(self, sensor, value):
-        check_sensor_number(sensor)
-
+        err = check_sensor_number(sensor)
+        if err:
+            return err
         address = (int(sensor) - 1) * SENSOR_REG_JUMP + TRIG_SELECT
         data = self.write_register(address, value)
         return data
 
     def get_trigger_select(self, sensor):
-        check_sensor_number(sensor)
-
+        err = check_sensor_number(sensor)
+        if err:
+            return err
         address = (int(sensor) - 1) * SENSOR_REG_JUMP + TRIG_SELECT
         data = self.read_register(address)
         return data
 
     def get_trigger_state(self, sensor):
-        check_sensor_number(sensor)
-
+        err = check_sensor_number(sensor)
+        if err:
+            return err
         address = (int(sensor) - 1) * SENSOR_REG_JUMP + TRIG_STATE
         data = self.read_register(address)
         return data
 
     def sensor_reset(self, sensor):
-        check_sensor_number(sensor)
-
+        err = check_sensor_number(sensor)
+        if err:
+            return err
         address = (int(sensor) - 1) * SENSOR_REG_JUMP + SENSOR_RESET
         data = self.write_register(address, 1)
         return data
 
     def get_sensor_reset(self, sensor):
-        check_sensor_number(sensor)
-
+        err = check_sensor_number(sensor)
+        if err:
+            return err
         address = (int(sensor) - 1) * SENSOR_REG_JUMP + SENSOR_RESET
         data = self.read_register(address)
         return data
 
     def set_sensor_power(self, sensor, setting):
         if not isinstance(setting, bool):
-            raise TypeError('setting must be boolean')
+            return TypeError('setting must be boolean')
     
-        check_sensor_number(sensor)
+        err = check_sensor_number(sensor)
+        if err:
+            return err
 
         address = (int(sensor) - 1) * SENSOR_REG_JUMP + SENSOR_CONTROL
         self.write_register(address, setting)
             
 
     def get_sensor_power(self, sensor):
-        check_sensor_number(sensor)
+        err = check_sensor_number(sensor)
+        if err:
+            return err
 
         address = (int(sensor) - 1) * SENSOR_REG_JUMP + SENSOR_CONTROL
         data = self.read_register(address)
         return data
 
+    def get_sample_type(self, sensor):
+        err = check_sensor_number(sensor)
+        if err:
+            return err
+
+        address = (int(sensor) - 1) * SENSOR_REG_JUMP + SAMPLE_TYPE
+        data = self.read_register(address)
+        return data
+
     def get_timestamp(self, sensor):
-        check_sensor_number(sensor)
+        err = check_sensor_number(sensor)
+        if err:
+            return err
 
         lo_address = (int(sensor) - 1) * SENSOR_REG_JUMP + SENSOR_TIME_LO
         hi_address = (int(sensor) - 1) * SENSOR_REG_JUMP + SENSOR_TIME_HI
@@ -107,12 +127,16 @@ class boonton_control_spi(fpga_spi):
         return f"{minutes}:{seconds}.{usecs}"
 
     def set_trigger_delay(self, sensor, pulses):
-        check_sensor_number(sensor)
+        err = check_sensor_number(sensor)
+        if err:
+            return err
         address = (int(sensor) - 1) * SENSOR_REG_JUMP + PULSE_SELECT
         self.write_register(address, pulses)
 
     def get_trigger_delay(self, sensor):
-        check_sensor_number(sensor)
+        err = check_sensor_number(sensor)
+        if err:
+            return err
 
         address = (int(sensor) - 1) * SENSOR_REG_JUMP + PULSE_SELECT
         data = self.read_register(address)
@@ -170,9 +194,24 @@ class boonton_control_spi(fpga_spi):
         self.set_error(0)
         print(f"Register 64 = {self.get_error()}")
 
+# def sensor_within_range(sensor):
+#     try:
+#         sensor = int(sensor)
+#         if sensor < 1 or sensor > SENSOR_COUNT:
+#             return False
+#     except:
+#         return False
+    
+#     return True
+
 def check_sensor_number(sensor):
+    try:
+        sensor = int(sensor)
+    except:
+        return TypeError('Type should be an integer')
     if sensor < 1 or sensor > SENSOR_COUNT:
-        raise ValueError('Sensor number must be with range for the pi.')
+        return ValueError('Sensor number must be with range for the pi.')
+    return None
 
 def ip_to_int(addr):
     return struct.unpack("!I", socket.inet_aton(addr))[0]
